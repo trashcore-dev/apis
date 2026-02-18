@@ -2,121 +2,831 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YouTube Play API JSON Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🎵 YouTube Play API Viewer</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
+    :root {
+      --bg-primary: #0f0f1a;
+      --bg-secondary: #1a1a2e;
+      --bg-card: #16213e;
+      --accent: #e94560;
+      --accent-hover: #ff6b8b;
+      --text-primary: #f8f9fa;
+      --text-secondary: #a0a0c0;
+      --success: #00d9a5;
+      --error: #ff6b6b;
+      --warning: #ffc107;
+      --border-radius: 16px;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: monospace;
-      background: #1e1e1e;
-      color: #f0f0f0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, var(--bg-primary), #1a1a3a);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 16px;
+      line-height: 1.6;
     }
-    input, button {
-      padding: 10px;
-      margin: 5px;
-      border-radius: 5px;
-      border: none;
-      font-size: 16px;
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
     }
-    button {
-      background: #1db954;
-      color: white;
-      cursor: pointer;
+
+    header {
+      text-align: center;
+      padding: 24px 16px;
+      margin-bottom: 20px;
     }
-    button:hover {
-      background: #17a44c;
-    }
-    pre {
-      background: #121212;
-      padding: 15px;
-      border-radius: 10px;
-      max-width: 90%;
-      overflow-x: auto;
-    }
-    .url {
-      margin-top: 10px;
-      color: #ffcc00;
-      word-break: break-all;
+    header h1 {
+      font-size: clamp(1.5rem, 5vw, 2rem);
+      background: linear-gradient(90deg, var(--accent), #7b68ee);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 10px;
     }
-    .error {
-      color: #ff4c4c;
+
+    header p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .search-card {
+      background: var(--bg-card);
+      border-radius: var(--border-radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+      border: 1px solid rgba(233, 69, 96, 0.2);
+    }
+
+    .search-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .input-group {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-group i {
+      position: absolute;
+      left: 16px;
+      color: var(--text-secondary);
+      z-index: 2;
+    }
+
+    #query {
+      width: 100%;      padding: 14px 16px 14px 44px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 1rem;
+      transition: var(--transition);
+      outline: none;
+    }
+
+    #query:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.2);
+    }
+
+    #query::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .btn {
+      padding: 14px 24px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: linear-gradient(135deg, var(--accent), #c23a51);
+      color: white;
+      box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(233, 69, 96, 0.6);
+      background: linear-gradient(135deg, var(--accent-hover), #e94560);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;    }
+
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .url-section {
+      background: var(--bg-card);
+      border-radius: var(--border-radius);
+      padding: 16px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      display: none;
+    }
+
+    .url-section.show {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .url-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .url-label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .url-container {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    #urlText {
+      flex: 1;
+      min-width: 200px;
+      padding: 10px 14px;
+      background: var(--bg-secondary);
+      border-radius: 10px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: var(--warning);
+      word-break: break-all;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .result-card {
+      background: var(--bg-card);
+      border-radius: var(--border-radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      display: none;
+    }
+
+    .result-card.show {
+      display: block;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .result-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-sm {
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      border-radius: 8px;
+    }
+
+    pre {
+      background: var(--bg-secondary);
+      padding: 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      max-height: 500px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    pre code {
+      color: var(--text-primary);
+    }
+
+    /* JSON Syntax Highlighting */
+    .json-key { color: #7b68ee; }
+    .json-string { color: #00d9a5; }
+    .json-number { color: #ffc107; }
+    .json-boolean { color: #ff6b6b; }
+    .json-null { color: #a0a0c0; }
+
+    .error-box {      background: rgba(255, 107, 107, 0.15);
+      border: 1px solid var(--error);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin: 15px 0;
+      color: var(--error);
+      display: none;
+      align-items: center;
+      gap: 10px;
+      animation: shake 0.5s ease;
+    }
+
+    .error-box.show {
+      display: flex;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: var(--text-secondary);
+    }
+
+    .loading.show {
+      display: block;
+    }
+
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(233, 69, 96, 0.3);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .video-preview {
+      display: grid;
+      grid-template-columns: 1fr;      gap: 15px;
       margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .preview-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      background: var(--bg-secondary);
+      border-radius: 10px;
+    }
+
+    .preview-thumb {
+      width: 80px;
+      height: 60px;
+      border-radius: 8px;
+      background: linear-gradient(45deg, #667eea, #7b68ee);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .preview-info h4 {
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .preview-info p {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(233, 69, 96, 0.2);
+      color: var(--accent);      margin-left: 8px;
+    }
+
+    .duration-badge {
+      background: rgba(0, 217, 165, 0.2);
+      color: var(--success);
+    }
+
+    /* Mobile Optimizations */
+    @media (max-width: 600px) {
+      body {
+        padding: 12px;
+      }
+      
+      .search-card, .url-section, .result-card {
+        padding: 16px;
+      }
+      
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+      
+      .url-container {
+        flex-direction: column;
+      }
+      
+      #urlText {
+        width: 100%;
+      }
+      
+      .result-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .result-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      
+      .preview-item {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .preview-thumb {
+        width: 100%;
+        height: 120px;
+      }    }
+
+    /* Dark mode scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-hover);
+    }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      margin-top: 20px;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    
+    footer a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
-  <h1>YouTube Play API JSON Viewer</h1>
-  <input id="query" placeholder="Enter song or video" />
-  <button onclick="search()">Fetch JSON</button>
+  <div class="container">    <header>
+      <h1><i class="fab fa-youtube"></i> YouTube Play API Viewer</h1>
+      <p>Search for songs or videos and view the API response in beautiful JSON format</p>
+    </header>
 
-  <div class="url" id="apiUrl">
-    <span id="urlText"></span>
-    <button id="copyBtn" onclick="copyUrl()">Copy URL</button>
+    <main>
+      <!-- Search Card -->
+      <section class="search-card">
+        <form class="search-form" onsubmit="event.preventDefault(); search();">
+          <div class="input-group">
+            <i class="fas fa-search"></i>
+            <input 
+              type="text" 
+              id="query" 
+              placeholder="Enter song name, artist, or video title..." 
+              autocomplete="off"
+              autofocus
+            >
+          </div>
+          <button type="submit" id="tryBtn" class="btn">
+            <i class="fas fa-play-circle"></i> Search & Fetch JSON
+          </button>
+        </form>
+      </section>
+
+      <!-- Loading State -->
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Fetching data from API...</p>
+      </div>
+
+      <!-- Error Box -->
+      <div class="error-box" id="error">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span id="errorMsg">Error message here</span>
+      </div>
+
+      <!-- API URL Section -->
+      <section class="url-section" id="urlSection">
+        <div class="url-header">
+          <div class="url-label">
+            <i class="fas fa-link"></i> API Endpoint
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="copyUrl()">
+            <i class="fas fa-copy"></i> Copy URL
+          </button>
+        </div>
+        <div class="url-container">
+          <code id="urlText"></code>
+        </div>      </section>
+
+      <!-- Result Card -->
+      <section class="result-card" id="resultCard">
+        <div class="result-header">
+          <div class="result-title">
+            <i class="fas fa-code"></i> JSON Response
+            <span class="badge" id="responseBadge">Success</span>
+          </div>
+          <div class="result-actions">
+            <button class="btn btn-secondary btn-sm" onclick="copyJson()">
+              <i class="fas fa-copy"></i> Copy JSON
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="downloadJson()">
+              <i class="fas fa-download"></i> Download
+            </button>
+          </div>
+        </div>
+        <pre><code id="jsonResult"></code></pre>
+        
+        <!-- Optional Video Preview -->
+        <div class="video-preview" id="videoPreview"></div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Built with <i class="fas fa-heart" style="color: var(--accent);"></i> for developers • 
+         <a href="#" onclick="showDocs()">API Docs</a>
+      </p>
+    </footer>
   </div>
-  <pre id="jsonResult"></pre>
-  <div class="error" id="error"></div>
 
   <script>
-    const urlText = document.getElementById('urlText');
-    const jsonResult = document.getElementById('jsonResult');
-    const errorDiv = document.getElementById('error');
+    // DOM Elements
+    const elements = {
+      query: document.getElementById('query'),
+      tryBtn: document.getElementById('tryBtn'),
+      loading: document.getElementById('loading'),
+      error: document.getElementById('error'),
+      errorMsg: document.getElementById('errorMsg'),
+      urlSection: document.getElementById('urlSection'),
+      urlText: document.getElementById('urlText'),
+      resultCard: document.getElementById('resultCard'),
+      jsonResult: document.getElementById('jsonResult'),
+      responseBadge: document.getElementById('responseBadge'),
+      videoPreview: document.getElementById('videoPreview')
+    };
 
-    function search() {
-      const query = document.getElementById('query').value.trim();
-      jsonResult.textContent = '';
-      urlText.textContent = '';
-      errorDiv.textContent = '';
-
-      if (!query) {
-        errorDiv.textContent = 'Please enter a search query.';
-        return;
-      }
-
-      // 1️⃣ Backend URL (Render)
-      const backendBase = 'https://apis-backend-jqno.onrender.com/api/youtube/play?q=';
-      const fullUrl = backendBase + encodeURIComponent(query);
-
-      // 2️⃣ Display URL as if it's frontend domain
-      const displayUrl = window.location.origin + '/api/youtube/play?q=' + encodeURIComponent(query);
-      urlText.textContent = displayUrl;
-
-      // 3️⃣ Fetch JSON from backend
-      fetch(fullUrl)
-        .then(res => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.json();
-        })
-        .then(data => {
-          // Format duration nicely
-          if (data.duration) data.durationFormatted = formatDuration(data.duration);
-          jsonResult.textContent = JSON.stringify(data, null, 2);
-        })
-        .catch(err => {
-          console.error(err);
-          errorDiv.textContent = 'Error fetching JSON from API.';
-        });
+    // Format duration in seconds to mm:ss
+    function formatDuration(seconds) {      if (!seconds || isNaN(seconds)) return "0:00";
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
 
-    function copyUrl() {
-      const url = urlText.textContent;
-      if (!url) return;
-      navigator.clipboard.writeText(url).then(() => {
-        alert('API URL copied to clipboard!');
+    // Simple JSON syntax highlighter
+    function syntaxHighlight(json) {
+      if (typeof json !== 'string') {
+        json = JSON.stringify(json, null, 2);
+      }
+      return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, function (match) {
+        let cls = 'json-number';
+        if (/^"/.test(match)) {
+          if (/:$/.test(match)) {
+            cls = 'json-key';
+          } else {
+            cls = 'json-string';
+          }
+        } else if (/true|false/.test(match)) {
+          cls = 'json-boolean';
+        } else if (/null/.test(match)) {
+          cls = 'json-null';
+        }
+        return `<span class="${cls}">${match}</span>`;
       });
     }
 
-    // Convert seconds to mm:ss
-    function formatDuration(seconds) {
-      const mins = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      return `${mins}:${secs.toString().padStart(2,'0')}`;
+    // Show video preview if data contains video info
+    function renderVideoPreview(data) {
+      const preview = elements.videoPreview;
+      preview.innerHTML = '';
+      
+      if (data.title || data.name || data.videoTitle) {
+        const title = data.title || data.name || data.videoTitle;
+        const duration = data.durationFormatted || (data.duration ? formatDuration(data.duration) : '');
+        const channel = data.channel || data.author || 'Unknown';
+        
+        preview.innerHTML = `
+          <div class="preview-item">
+            <div class="preview-thumb">
+              <i class="fas fa-video"></i>
+            </div>
+            <div class="preview-info">
+              <h4>${escapeHtml(title)}</h4>
+              <p><i class="fas fa-user"></i> ${escapeHtml(channel)}</p>
+              ${duration ? `<p><i class="fas fa-clock"></i> <span class="badge duration-badge">${duration}</span></p>` : ''}
+            </div>
+          </div>
+        `;      }
     }
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Main search function
+    async function search() {
+      const query = elements.query.value.trim();
+      
+      // Reset UI
+      elements.error.classList.remove('show');
+      elements.urlSection.classList.remove('show');
+      elements.resultCard.classList.remove('show');
+      elements.videoPreview.innerHTML = '';
+      
+      if (!query) {
+        showError('Please enter a song or video name to search.');
+        elements.query.focus();
+        return;
+      }
+
+      // Show loading state
+      setLoading(true);
+      elements.tryBtn.disabled = true;
+
+      try {
+        const backendBase = 'https://apis-backend-jqno.onrender.com/api/youtube/play?q=';
+        const fullUrl = backendBase + encodeURIComponent(query);
+
+        const response = await fetch(fullUrl);
+        
+        if (!response.ok) {
+          throw new Error(`API returned status ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        // Add formatted duration if available
+        if (data.duration) {
+          const seconds = typeof data.duration === 'number' 
+            ? data.duration 
+            : parseInt(data.duration, 10);
+          if (!isNaN(seconds)) {
+            data.durationFormatted = formatDuration(seconds);          }
+        }
+
+        // Display URL
+        const localUrl = `${window.location.origin}/api/youtube/play?q=${encodeURIComponent(query)}`;
+        elements.urlText.textContent = localUrl;
+        elements.urlSection.classList.add('show');
+
+        // Display JSON with syntax highlighting
+        elements.jsonResult.innerHTML = syntaxHighlight(data);
+        elements.responseBadge.textContent = 'Success';
+        elements.responseBadge.style.background = 'rgba(0, 217, 165, 0.2)';
+        elements.responseBadge.style.color = 'var(--success)';
+        
+        // Render video preview
+        renderVideoPreview(data);
+        
+        // Show result card
+        elements.resultCard.classList.add('show');
+
+      } catch (err) {
+        console.error('Fetch error:', err);
+        showError(`Failed to fetch data: ${err.message}. Please try again.`);
+        elements.responseBadge.textContent = 'Error';
+        elements.responseBadge.style.background = 'rgba(255, 107, 107, 0.2)';
+        elements.responseBadge.style.color = 'var(--error)';
+      } finally {
+        setLoading(false);
+        elements.tryBtn.disabled = false;
+      }
+    }
+
+    // Show error message
+    function showError(message) {
+      elements.errorMsg.textContent = message;
+      elements.error.classList.add('show');
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        elements.error.classList.remove('show');
+      }, 5000);
+    }
+
+    // Toggle loading state
+    function setLoading(isLoading) {
+      if (isLoading) {
+        elements.loading.classList.add('show');
+      } else {
+        elements.loading.classList.remove('show');
+      }
+    }
+    // Copy API URL to clipboard
+    async function copyUrl() {
+      const url = elements.urlText.textContent;
+      if (!url) return;
+      
+      try {
+        await navigator.clipboard.writeText(url);
+        showTemporaryFeedback('URL copied!', 'success');
+      } catch (err) {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = url;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showTemporaryFeedback('URL copied!', 'success');
+      }
+    }
+
+    // Copy JSON to clipboard
+    async function copyJson() {
+      const json = elements.jsonResult.textContent;
+      if (!json) return;
+      
+      try {
+        await navigator.clipboard.writeText(json);
+        showTemporaryFeedback('JSON copied!', 'success');
+      } catch (err) {
+        showTemporaryFeedback('Failed to copy', 'error');
+      }
+    }
+
+    // Download JSON as file
+    function downloadJson() {
+      const json = elements.jsonResult.textContent;
+      if (!json) return;
+      
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `youtube-api-response-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showTemporaryFeedback('Download started!', 'success');    }
+
+    // Show temporary feedback message
+    function showTemporaryFeedback(message, type = 'success') {
+      const originalContent = elements.responseBadge.innerHTML;
+      elements.responseBadge.textContent = message;
+      elements.responseBadge.style.background = type === 'success' 
+        ? 'rgba(0, 217, 165, 0.3)' 
+        : 'rgba(255, 107, 107, 0.3)';
+      
+      setTimeout(() => {
+        elements.responseBadge.innerHTML = originalContent;
+        elements.responseBadge.style.background = '';
+        elements.responseBadge.style.color = '';
+      }, 2000);
+    }
+
+    // Show API docs (placeholder)
+    function showDocs() {
+      alert('📚 API Documentation\n\nEndpoint: GET /api/youtube/play\nParams: q (search query)\n\nReturns: JSON with video metadata including title, duration, thumbnail, and more.');
+    }
+
+    // Initialize: Add keyboard shortcut (Enter to search)
+    elements.query.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        search();
+      }
+    });
+
+    // Auto-focus input on load (mobile-friendly delay)
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        if (window.innerWidth > 768) {
+          elements.query.focus();
+        }
+      }, 300);
+    });
+
+    // Handle page visibility for better mobile UX
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        // Pause any ongoing operations if needed
+      }
+    });
   </script>
 </body>
 </html>
