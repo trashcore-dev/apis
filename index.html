@@ -78,10 +78,13 @@
         return;
       }
 
-      // Use frontend domain dynamically
-      const apiBase = window.location.origin + '/api/youtube/play?q=';
-      const fullUrl = apiBase + encodeURIComponent(query);
-      urlText.textContent = fullUrl;
+      // ✅ Backend URL (Render)
+      const backendBase = 'https://apis-backend-jqno.onrender.com/api/youtube/play?q=';
+      const fullUrl = backendBase + encodeURIComponent(query);
+
+      // Display URL as if it’s on your frontend domain
+      const displayUrl = window.location.origin + '/api/youtube/play?q=' + encodeURIComponent(query);
+      urlText.textContent = displayUrl;
 
       fetch(fullUrl)
         .then(res => res.json())
