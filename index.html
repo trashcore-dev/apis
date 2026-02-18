@@ -688,9 +688,9 @@
         }
 
         // Display URL
-        const localUrl = `${window.location.origin}/api/youtube/play?q=${encodeURIComponent(query)}`;
-        elements.urlText.textContent = localUrl;
-        elements.urlSection.classList.add('show');
+const renderBackend = 'https://apis-backend-jqno.onrender.com/api/youtube/play?q=';
+elements.urlText.textContent = renderBackend + encodeURIComponent(query);
+elements.urlSection.classList.add('show');
 
         // Display JSON with syntax highlighting
         elements.jsonResult.innerHTML = syntaxHighlight(data);
