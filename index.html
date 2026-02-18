@@ -78,17 +78,23 @@
         return;
       }
 
-      // ✅ Backend URL (Render)
+      // 1️⃣ Backend URL (Render)
       const backendBase = 'https://apis-backend-jqno.onrender.com/api/youtube/play?q=';
       const fullUrl = backendBase + encodeURIComponent(query);
 
-      // Display URL as if it’s on your frontend domain
+      // 2️⃣ Display URL as if it's frontend domain
       const displayUrl = window.location.origin + '/api/youtube/play?q=' + encodeURIComponent(query);
       urlText.textContent = displayUrl;
 
+      // 3️⃣ Fetch JSON from backend
       fetch(fullUrl)
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
         .then(data => {
+          // Format duration nicely
+          if (data.duration) data.durationFormatted = formatDuration(data.duration);
           jsonResult.textContent = JSON.stringify(data, null, 2);
         })
         .catch(err => {
@@ -103,6 +109,13 @@
       navigator.clipboard.writeText(url).then(() => {
         alert('API URL copied to clipboard!');
       });
+    }
+
+    // Convert seconds to mm:ss
+    function formatDuration(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toString().padStart(2,'0')}`;
     }
   </script>
 </body>
