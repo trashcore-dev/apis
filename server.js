@@ -3,7 +3,9 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const youtubedl = require('youtube-dl-exec');
+const ytdl = require('@distube/ytdl-core');
+const yts = require('yt-search');
+const scdl = require('soundcloud-downloader').default;
 
 const app = express();
 app.use(cors());
@@ -11,6 +13,7 @@ app.use(express.json());
 app.use(express.static('public'));
 
 const TMP_DIR = os.tmpdir();
+const SC_CLIENT_ID = process.env.SC_CLIENT_ID || '';
 
 function detectPlatform(url) {
   if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('music.youtube.com')) return 'youtube';
@@ -18,21 +21,15 @@ function detectPlatform(url) {
   return 'unknown';
 }
 
+function formatDuration(sec) {
+  if (!sec) return '0:00';
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 // GET /api/health
-app.get('/api/health', async (req, res) => {
-  try {
-    const info = await youtubedl('https://www.youtube.com/watch?v=dQw4w9WgXcQ', {
-      dumpSingleJson: true,
-      noWarnings: true,
-      noCallHome: true,
-      noCheckCertificate: true,
-      preferFreeFormats: true,
-      simulate: true,
-    });
-    res.json({ status: 'ok', title: info.title });
-  } catch (e) {
-    res.status(500).json({ status: 'error', message: e.message });
-  }
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', engine: 'ytdl-core + soundcloud-downloader' });
 });
 
 // GET /api/info?url=
@@ -44,37 +41,48 @@ app.get('/api/info', async (req, res) => {
   if (platform === 'unknown') return res.status(400).json({ error: 'Only YouTube and SoundCloud URLs are supported' });
 
   try {
-    const info = await youtubedl(url, {
-      dumpSingleJson: true,
-      noWarnings: true,
-      noPlaylist: true,
-    });
-
-    const formats = (info.formats || [])
-      .filter(f => f.ext && (f.acodec !== 'none' || f.vcodec !== 'none'))
-      .map(f => ({
-        format_id: f.format_id,
-        ext: f.ext,
+    if (platform === 'youtube') {
+      const info = await ytdl.getInfo(url);
+      const details = info.videoDetails;
+      const formats = info.formats.map(f => ({
+        format_id: f.itag,
+        ext: f.container,
         quality: f.quality,
-        filesize: f.filesize,
-        acodec: f.acodec,
-        vcodec: f.vcodec,
-        format_note: f.format_note || '',
-        type: f.vcodec === 'none' ? 'audio' : f.acodec === 'none' ? 'video-only' : 'video+audio',
+        filesize: f.contentLength,
+        acodec: f.audioCodec,
+        vcodec: f.videoCodec,
+        format_note: f.qualityLabel || f.audioQuality || '',
+        type: !f.videoCodec ? 'audio' : !f.audioCodec ? 'video-only' : 'video+audio',
+        bitrate: f.bitrate,
       }));
 
-    return res.json({
-      platform,
-      id: info.id,
-      title: info.title,
-      uploader: info.uploader || info.artist || null,
-      duration: info.duration,
-      thumbnail: info.thumbnail,
-      webpage_url: info.webpage_url || url,
-      view_count: info.view_count,
-      upload_date: info.upload_date,
-      formats,
-    });
+      return res.json({
+        platform,
+        id: details.videoId,
+        title: details.title,
+        uploader: details.author?.name || null,
+        duration: parseInt(details.lengthSeconds),
+        thumbnail: details.thumbnails?.slice(-1)[0]?.url || null,
+        webpage_url: url,
+        view_count: parseInt(details.viewCount),
+        formats,
+      });
+    }
+
+    if (platform === 'soundcloud') {
+      const info = await scdl.getInfo(url, SC_CLIENT_ID);
+      return res.json({
+        platform,
+        id: info.id,
+        title: info.title,
+        uploader: info.user?.username || null,
+        duration: Math.floor((info.duration || 0) / 1000),
+        thumbnail: info.artwork_url || null,
+        webpage_url: info.permalink_url || url,
+        view_count: info.playback_count,
+        formats: [],
+      });
+    }
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -83,67 +91,79 @@ app.get('/api/info', async (req, res) => {
 // GET /api/search?q=&platform=&limit=
 app.get('/api/search', async (req, res) => {
   const { q, platform = 'youtube', limit = 5 } = req.query;
-  if (!q) return res.status(400).json({ error: 'q (query) is required' });
-
-  const source = platform === 'soundcloud' ? 'scsearch' : 'ytsearch';
-  const searchUrl = `${source}${limit}:${q}`;
+  if (!q) return res.status(400).json({ error: 'q is required' });
 
   try {
-    const result = await youtubedl(searchUrl, {
-      dumpSingleJson: true,
-      noWarnings: true,
-      flatPlaylist: true,
-    });
+    if (platform === 'youtube') {
+      const r = await yts(q);
+      const results = r.videos.slice(0, parseInt(limit)).map(v => ({
+        id: v.videoId,
+        title: v.title,
+        uploader: v.author?.name || null,
+        duration: v.duration?.seconds || null,
+        thumbnail: v.thumbnail,
+        url: v.url,
+        platform: 'youtube',
+      }));
+      return res.json({ results });
+    }
 
-    const entries = result.entries || [result];
-    const results = entries.map(item => ({
-      id: item.id,
-      title: item.title,
-      uploader: item.uploader || item.channel || null,
-      duration: item.duration,
-      thumbnail: item.thumbnail,
-      url: item.url || item.webpage_url || `https://www.youtube.com/watch?v=${item.id}`,
-      platform,
-    }));
+    if (platform === 'soundcloud') {
+      const r = await scdl.search({ query: q, limit: parseInt(limit), resourceType: 'tracks' }, SC_CLIENT_ID);
+      const results = (r.collection || []).map(t => ({
+        id: t.id,
+        title: t.title,
+        uploader: t.user?.username || null,
+        duration: Math.floor((t.duration || 0) / 1000),
+        thumbnail: t.artwork_url || null,
+        url: t.permalink_url,
+        platform: 'soundcloud',
+      }));
+      return res.json({ results });
+    }
 
-    return res.json({ results });
+    return res.status(400).json({ error: 'platform must be youtube or soundcloud' });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 });
 
-// GET /api/download?url=&format=audio|video&quality=best
+// GET /api/download?url=&format=audio|video
 app.get('/api/download', async (req, res) => {
-  const { url, format = 'audio', quality = 'best' } = req.query;
+  const { url, format = 'audio' } = req.query;
   if (!url) return res.status(400).json({ error: 'url is required' });
 
   const platform = detectPlatform(url);
   if (platform === 'unknown') return res.status(400).json({ error: 'Unsupported platform' });
 
-  const tmpFile = path.join(TMP_DIR, `drexmusic_${Date.now()}`);
-  const ext = format === 'audio' ? 'mp3' : 'mp4';
-  const outFile = `${tmpFile}.${ext}`;
-
   try {
-    // Get title first
-    const info = await youtubedl(url, { dumpSingleJson: true, noWarnings: true, noPlaylist: true });
-    const safeName = info.title.replace(/[^a-zA-Z0-9 _-]/g, '').trim().substring(0, 80);
+    if (platform === 'youtube') {
+      const info = await ytdl.getInfo(url);
+      const title = info.videoDetails.title.replace(/[^a-zA-Z0-9 _-]/g, '').trim().substring(0, 80);
+      const ext = format === 'audio' ? 'mp3' : 'mp4';
 
-    const dlOptions = format === 'audio'
-      ? { extractAudio: true, audioFormat: 'mp3', audioQuality: 0, output: outFile, noPlaylist: true }
-      : { format: 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best', output: outFile, noPlaylist: true };
+      res.setHeader('Content-Disposition', `attachment; filename="${title}.${ext}"`);
+      res.setHeader('Content-Type', format === 'audio' ? 'audio/mpeg' : 'video/mp4');
 
-    await youtubedl(url, dlOptions);
+      const options = format === 'audio'
+        ? { filter: 'audioonly', quality: 'highestaudio' }
+        : { filter: 'videoandaudio', quality: 'highestvideo' };
 
-    if (!fs.existsSync(outFile)) throw new Error('Download failed, file not found');
+      ytdl(url, options).pipe(res);
+      return;
+    }
 
-    res.setHeader('Content-Disposition', `attachment; filename="${safeName}.${ext}"`);
-    res.setHeader('Content-Type', format === 'audio' ? 'audio/mpeg' : 'video/mp4');
+    if (platform === 'soundcloud') {
+      const info = await scdl.getInfo(url, SC_CLIENT_ID);
+      const title = (info.title || 'track').replace(/[^a-zA-Z0-9 _-]/g, '').trim().substring(0, 80);
 
-    const stream = fs.createReadStream(outFile);
-    stream.pipe(res);
-    stream.on('end', () => { fs.unlink(outFile, () => {}); });
-    stream.on('error', () => { fs.unlink(outFile, () => {}); res.status(500).end(); });
+      res.setHeader('Content-Disposition', `attachment; filename="${title}.mp3"`);
+      res.setHeader('Content-Type', 'audio/mpeg');
+
+      const stream = await scdl.download(url, SC_CLIENT_ID);
+      stream.pipe(res);
+      return;
+    }
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -158,18 +178,19 @@ app.get('/api/stream-url', async (req, res) => {
   if (platform === 'unknown') return res.status(400).json({ error: 'Unsupported platform' });
 
   try {
-    const info = await youtubedl(url, {
-      dumpSingleJson: true,
-      noWarnings: true,
-      noPlaylist: true,
-      format: format === 'audio' ? 'bestaudio' : 'bestvideo+bestaudio/best',
-    });
+    if (platform === 'youtube') {
+      const info = await ytdl.getInfo(url);
+      const formats = info.formats;
+      const chosen = format === 'audio'
+        ? ytdl.chooseFormat(formats, { filter: 'audioonly', quality: 'highestaudio' })
+        : ytdl.chooseFormat(formats, { filter: 'videoandaudio', quality: 'highestvideo' });
+      return res.json({ stream_url: chosen.url, title: info.videoDetails.title });
+    }
 
-    const streamUrl = format === 'audio'
-      ? (info.formats || []).filter(f => f.vcodec === 'none').sort((a, b) => (b.abr || 0) - (a.abr || 0))[0]?.url || info.url
-      : info.url;
-
-    return res.json({ stream_url: streamUrl });
+    if (platform === 'soundcloud') {
+      // SoundCloud stream URL via download endpoint (redirect)
+      return res.json({ stream_url: `/api/download?url=${encodeURIComponent(url)}&format=audio` });
+    }
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
