@@ -1,8 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const os = require('os');
-const path = require('path');
-const ytdl = require('@distube/ytdl-core');
+const { Innertube } = require('youtubei.js');
 const yts = require('yt-search');
 
 const app = express();
@@ -10,35 +8,59 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-function detectPlatform(url) {
-  if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('music.youtube.com')) return 'youtube';
-  return 'unknown';
+let yt = null;
+
+// Init youtubei.js once
+async function getYT() {
+  if (!yt) yt = await Innertube.create({ cache: false, generate_session_locally: true });
+  return yt;
+}
+
+function isYouTubeUrl(url) {
+  return url.includes('youtube.com') || url.includes('youtu.be') || url.includes('music.youtube.com');
+}
+
+function extractVideoId(url) {
+  const match = url.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+  return match ? match[1] : null;
 }
 
 // GET /api/health
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', engine: '@distube/ytdl-core', platform: 'YouTube only' });
+app.get('/api/health', async (req, res) => {
+  try {
+    await getYT();
+    res.json({ status: 'ok', engine: 'youtubei.js' });
+  } catch (e) {
+    res.status(500).json({ status: 'error', message: e.message });
+  }
 });
 
 // GET /api/info?url=
 app.get('/api/info', async (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).json({ error: 'url is required' });
-  if (detectPlatform(url) === 'unknown') return res.status(400).json({ error: 'Only YouTube URLs are supported' });
+  if (!isYouTubeUrl(url)) return res.status(400).json({ error: 'Only YouTube URLs are supported' });
+
+  const videoId = extractVideoId(url);
+  if (!videoId) return res.status(400).json({ error: 'Could not extract video ID from URL' });
 
   try {
-    const info = await ytdl.getInfo(url);
-    const d = info.videoDetails;
+    const youtube = await getYT();
+    const info = await youtube.getInfo(videoId);
+    const d = info.basic_info;
+
     return res.json({
-      id: d.videoId,
+      id: d.id,
       title: d.title,
-      uploader: d.author?.name || null,
-      duration: parseInt(d.lengthSeconds),
-      thumbnail: d.thumbnails?.slice(-1)[0]?.url || null,
-      webpage_url: url,
-      view_count: parseInt(d.viewCount),
+      uploader: d.channel?.name || d.author || null,
+      duration: d.duration,
+      thumbnail: d.thumbnail?.[0]?.url || null,
+      webpage_url: `https://www.youtube.com/watch?v=${d.id}`,
+      view_count: d.view_count,
     });
-  } catch (err) { return res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // GET /api/search?q=&limit=
@@ -57,45 +79,86 @@ app.get('/api/search', async (req, res) => {
       url: v.url,
     }));
     return res.json({ results });
-  } catch (err) { return res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // GET /api/download?url=&format=audio|video
 app.get('/api/download', async (req, res) => {
   const { url, format = 'audio' } = req.query;
   if (!url) return res.status(400).json({ error: 'url is required' });
-  if (detectPlatform(url) === 'unknown') return res.status(400).json({ error: 'Only YouTube URLs are supported' });
+  if (!isYouTubeUrl(url)) return res.status(400).json({ error: 'Only YouTube URLs are supported' });
+
+  const videoId = extractVideoId(url);
+  if (!videoId) return res.status(400).json({ error: 'Could not extract video ID' });
 
   try {
-    const info = await ytdl.getInfo(url);
-    const title = info.videoDetails.title.replace(/[^a-zA-Z0-9 _-]/g, '').trim().substring(0, 80);
-    const ext = format === 'audio' ? 'mp3' : 'mp4';
+    const youtube = await getYT();
+    const info = await youtube.getInfo(videoId);
+    const title = (info.basic_info.title || 'audio').replace(/[^a-zA-Z0-9 _-]/g, '').trim().substring(0, 80);
 
-    res.setHeader('Content-Disposition', `attachment; filename="${title}.${ext}"`);
-    res.setHeader('Content-Type', format === 'audio' ? 'audio/mpeg' : 'video/mp4');
+    if (format === 'audio') {
+      const stream = await youtube.download(videoId, {
+        type: 'audio',
+        quality: 'best',
+        format: 'mp4', // aac audio in mp4 container — works without ffmpeg
+      });
 
-    const options = format === 'audio'
-      ? { filter: 'audioonly', quality: 'highestaudio' }
-      : { filter: 'videoandaudio', quality: 'highestvideo' };
+      res.setHeader('Content-Disposition', `attachment; filename="${title}.m4a"`);
+      res.setHeader('Content-Type', 'audio/mp4');
 
-    ytdl(url, options).pipe(res);
-  } catch (err) { return res.status(500).json({ error: err.message }); }
+      const { Readable } = require('stream');
+      Readable.from(stream).pipe(res);
+    } else {
+      const stream = await youtube.download(videoId, {
+        type: 'video+audio',
+        quality: '360p',
+        format: 'mp4',
+      });
+
+      res.setHeader('Content-Disposition', `attachment; filename="${title}.mp4"`);
+      res.setHeader('Content-Type', 'video/mp4');
+
+      const { Readable } = require('stream');
+      Readable.from(stream).pipe(res);
+    }
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // GET /api/stream-url?url=&format=audio|video
+// Returns direct URL — good for TrashBot (send as audio message)
 app.get('/api/stream-url', async (req, res) => {
   const { url, format = 'audio' } = req.query;
   if (!url) return res.status(400).json({ error: 'url is required' });
-  if (detectPlatform(url) === 'unknown') return res.status(400).json({ error: 'Only YouTube URLs are supported' });
+  if (!isYouTubeUrl(url)) return res.status(400).json({ error: 'Only YouTube URLs are supported' });
+
+  const videoId = extractVideoId(url);
+  if (!videoId) return res.status(400).json({ error: 'Could not extract video ID' });
 
   try {
-    const info = await ytdl.getInfo(url);
+    const youtube = await getYT();
+    const info = await youtube.getInfo(videoId);
+
     const chosen = format === 'audio'
-      ? ytdl.chooseFormat(info.formats, { filter: 'audioonly', quality: 'highestaudio' })
-      : ytdl.chooseFormat(info.formats, { filter: 'videoandaudio', quality: 'highestvideo' });
-    return res.json({ stream_url: chosen.url, title: info.videoDetails.title });
-  } catch (err) { return res.status(500).json({ error: err.message }); }
+      ? info.chooseFormat({ type: 'audio', quality: 'best' })
+      : info.chooseFormat({ type: 'video+audio', quality: '360p' });
+
+    return res.json({
+      stream_url: chosen.decipher(youtube.session.player),
+      title: info.basic_info.title,
+      duration: info.basic_info.duration,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`DrexMusic API running on port ${PORT}`));
+app.listen(PORT, async () => {
+  console.log(`DrexMusic API running on port ${PORT}`);
+  // Pre-warm the YouTube session
+  getYT().then(() => console.log('YouTube session ready')).catch(console.error);
+});
