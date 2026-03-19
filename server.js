@@ -162,3 +162,80 @@ app.listen(PORT, async () => {
   // Pre-warm the YouTube session
   getYT().then(() => console.log('YouTube session ready')).catch(console.error);
 });
+
+// GET /downloader/youtubemp3?q=&limit=
+app.get('/downloader/youtubemp3', async (req, res) => {
+  const { q, limit = 5 } = req.query;
+  if (!q) return res.status(400).json({ error: 'q is required' });
+
+  try {
+    let results = [];
+    if (isYouTubeUrl(q)) {
+      // Single URL — return info
+      const videoId = extractVideoId(q);
+      const youtube = await getYT();
+      const info = await youtube.getInfo(videoId);
+      const d = info.basic_info;
+      const ytUrl = `https://www.youtube.com/watch?v=${d.id}`;
+      results = [{
+        id: d.id, title: d.title,
+        uploader: d.channel?.name || d.author || null,
+        duration: d.duration,
+        thumbnail: d.thumbnail?.[0]?.url || null,
+        url: ytUrl,
+        download_url: `${req.protocol}://${req.get('host')}/api/download?url=${encodeURIComponent(ytUrl)}&format=audio`,
+      }];
+    } else {
+      const r = await yts(q);
+      results = r.videos.slice(0, parseInt(limit)).map(v => {
+        const ytUrl = v.url;
+        return {
+          id: v.videoId, title: v.title,
+          uploader: v.author?.name || null,
+          duration: v.duration?.seconds || null,
+          thumbnail: v.thumbnail, url: ytUrl,
+          download_url: `${req.protocol}://${req.get('host')}/api/download?url=${encodeURIComponent(ytUrl)}&format=audio`,
+        };
+      });
+    }
+    return res.json(results);
+  } catch (err) { return res.status(500).json({ error: err.message }); }
+});
+
+// GET /downloader/youtubemp4?q=&limit=
+app.get('/downloader/youtubemp4', async (req, res) => {
+  const { q, limit = 5 } = req.query;
+  if (!q) return res.status(400).json({ error: 'q is required' });
+
+  try {
+    let results = [];
+    if (isYouTubeUrl(q)) {
+      const videoId = extractVideoId(q);
+      const youtube = await getYT();
+      const info = await youtube.getInfo(videoId);
+      const d = info.basic_info;
+      const ytUrl = `https://www.youtube.com/watch?v=${d.id}`;
+      results = [{
+        id: d.id, title: d.title,
+        uploader: d.channel?.name || d.author || null,
+        duration: d.duration,
+        thumbnail: d.thumbnail?.[0]?.url || null,
+        url: ytUrl,
+        download_url: `${req.protocol}://${req.get('host')}/api/download?url=${encodeURIComponent(ytUrl)}&format=video`,
+      }];
+    } else {
+      const r = await yts(q);
+      results = r.videos.slice(0, parseInt(limit)).map(v => {
+        const ytUrl = v.url;
+        return {
+          id: v.videoId, title: v.title,
+          uploader: v.author?.name || null,
+          duration: v.duration?.seconds || null,
+          thumbnail: v.thumbnail, url: ytUrl,
+          download_url: `${req.protocol}://${req.get('host')}/api/download?url=${encodeURIComponent(ytUrl)}&format=video`,
+        };
+      });
+    }
+    return res.json(results);
+  } catch (err) { return res.status(500).json({ error: err.message }); }
+});
