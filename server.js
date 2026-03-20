@@ -167,3 +167,52 @@ app.get('/downloader/youtubemp4', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`DrexMusic API running on port ${PORT}`));
+
+// GET /download/youtube?q=&type=mp3|mp4&quality=
+// Mimics api.zenzxz.my.id response format
+app.get('/download/youtube', async (req, res) => {
+  const { q, type = 'mp3', quality } = req.query;
+  if (!q) return res.status(400).json({ status: false, message: 'q is required' });
+
+  try {
+    // Search or resolve URL
+    let videoUrl, videoInfo;
+
+    if (isYouTubeUrl(q)) {
+      videoUrl = q;
+    } else {
+      const r = await yts(q);
+      if (!r.videos.length) return res.status(404).json({ status: false, message: 'No results found' });
+      videoUrl = r.videos[0].url;
+    }
+
+    const info = await ytdl.getInfo(videoUrl, YTDL_OPTS);
+    const d = info.videoDetails;
+
+    let fmt;
+    if (type === 'mp4') {
+      fmt = ytdl.chooseFormat(info.formats, { filter: 'videoandaudio', quality: quality || 'highestvideo' });
+    } else {
+      fmt = ytdl.chooseFormat(info.formats, { filter: 'audioonly', quality: 'highestaudio' });
+    }
+
+    return res.json({
+      status: true,
+      creator: 'DrexMusic',
+      result: {
+        id: d.videoId,
+        title: d.title,
+        author: d.author?.name || null,
+        duration: parseInt(d.lengthSeconds),
+        thumbnail: d.thumbnails?.slice(-1)[0]?.url || null,
+        format: type,
+        quality: fmt.qualityLabel || fmt.audioQuality || quality || 'best',
+        size: fmt.contentLength ? `${(parseInt(fmt.contentLength) / (1024 * 1024)).toFixed(2)} MB` : null,
+        url: fmt.url,
+        download_url: `${req.protocol}://${req.get('host')}/api/download?url=${encodeURIComponent(videoUrl)}&format=${type === 'mp3' ? 'audio' : 'video'}`,
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ status: false, message: err.message });
+  }
+});
