@@ -8,12 +8,52 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Agent with cookies to bypass bot detection
-const agent = ytdl.createAgent(undefined, {
-  pipelining: 5,
-  maxRedirections: 0,
-});
+// Parse cookies from environment variable (Netscape format or JSON)
+function buildAgent() {
+  const raw = process.env.YT_COOKIES;
+  if (!raw) {
+    console.warn('[ytdl] No YT_COOKIES set — may get bot-detection errors');
+    return ytdl.createAgent();
+  }
 
+  try {
+    // Try JSON array format: [{ name, value, domain, ... }]
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      console.log(`[ytdl] Loaded ${parsed.length} cookies from JSON`);
+      return ytdl.createAgent(parsed);
+    }
+  } catch {}
+
+  // Try Netscape cookies.txt format
+  try {
+    const cookies = [];
+    for (const line of raw.split('\n')) {
+      if (line.startsWith('#') || !line.trim()) continue;
+      const parts = line.trim().split('\t');
+      if (parts.length >= 7) {
+        cookies.push({
+          domain: parts[0],
+          httpOnly: parts[1] === 'TRUE',
+          path: parts[2],
+          secure: parts[3] === 'TRUE',
+          expires: parseInt(parts[4]) || undefined,
+          name: parts[5],
+          value: parts[6],
+        });
+      }
+    }
+    if (cookies.length > 0) {
+      console.log(`[ytdl] Loaded ${cookies.length} cookies from Netscape format`);
+      return ytdl.createAgent(cookies);
+    }
+  } catch {}
+
+  console.warn('[ytdl] Could not parse YT_COOKIES');
+  return ytdl.createAgent();
+}
+
+const agent = buildAgent();
 const YTDL_OPTS = { agent };
 
 function isYouTubeUrl(url) {
@@ -27,7 +67,12 @@ function extractVideoId(url) {
 
 // GET /api/health
 app.get('/api/health', async (req, res) => {
-  res.json({ status: 'ok', engine: '@distube/ytdl-core', node: process.version });
+  res.json({
+    status: 'ok',
+    engine: '@distube/ytdl-core',
+    node: process.version,
+    cookies: !!process.env.YT_COOKIES,
+  });
 });
 
 // GET /api/search?q=&limit=
