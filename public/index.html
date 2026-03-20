@@ -8,204 +8,143 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f0f0f;
-      --surface: #1a1a1a;
-      --surface2: #222222;
-      --border: #2e2e2e;
-      --border2: #3a3a3a;
-      --accent: #00d4aa;
-      --accent2: #ff6b6b;
-      --blue: #4a90d9;
-      --text: #e8e8e8;
-      --muted: #888;
-      --dim: #555;
-      --radius: 10px;
-      --green: #00d4aa;
+      --bg: #0f0f0f; --surface: #1a1a1a; --surface2: #222;
+      --border: #2e2e2e; --border2: #3a3a3a;
+      --accent: #00d4aa; --accent2: #ff6b6b; --blue: #4a90d9;
+      --text: #e8e8e8; --muted: #888; --dim: #555; --radius: 10px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
-
-    /* SCROLLBAR */
     ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
     ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-    /* NAV */
     nav {
       display: flex; align-items: center; justify-content: space-between;
       padding: 0 24px; height: 52px; border-bottom: 1px solid var(--border);
       background: var(--surface); position: sticky; top: 0; z-index: 100;
     }
-    .logo { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 1rem; color: var(--accent); letter-spacing: -0.02em; cursor: pointer; }
+    .logo { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 1rem; color: var(--accent); cursor: pointer; }
     .logo span { color: var(--text); }
     .nav-links { display: flex; gap: 4px; }
     .nav-link {
       padding: 6px 14px; border-radius: 6px; font-size: 0.82rem; font-weight: 500;
-      text-decoration: none; color: var(--muted); transition: all 0.15s; cursor: pointer;
+      color: var(--muted); transition: all 0.15s; cursor: pointer;
       border: 1px solid transparent; background: none;
     }
     .nav-link:hover { color: var(--text); background: var(--surface2); }
     .nav-link.active { color: var(--accent); background: rgba(0,212,170,0.08); border-color: rgba(0,212,170,0.2); }
 
-    /* LAYOUT */
     .layout { display: flex; min-height: calc(100vh - 52px); }
 
-    /* SIDEBAR */
     .sidebar {
       width: 240px; flex-shrink: 0; border-right: 1px solid var(--border);
       background: var(--surface); padding: 20px 0; position: sticky;
       top: 52px; height: calc(100vh - 52px); overflow-y: auto;
     }
-    .sidebar-section { margin-bottom: 24px; }
-    .sidebar-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); padding: 0 16px; margin-bottom: 6px; }
+    .sidebar-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); padding: 0 16px; margin-bottom: 6px; margin-top: 16px; }
+    .sidebar-label:first-child { margin-top: 0; }
     .sidebar-item {
       display: flex; align-items: center; gap: 10px; padding: 9px 16px;
-      cursor: pointer; transition: all 0.15s; color: var(--muted); font-size: 0.85rem;
+      cursor: pointer; transition: all 0.15s; color: var(--muted); font-size: 0.83rem;
       border-left: 2px solid transparent;
     }
     .sidebar-item:hover { background: var(--surface2); color: var(--text); }
     .sidebar-item.active { background: rgba(0,212,170,0.06); color: var(--accent); border-left-color: var(--accent); }
-    .sidebar-method { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: rgba(0,212,170,0.15); color: var(--accent); flex-shrink: 0; }
-    .sidebar-method.blue { background: rgba(74,144,217,0.15); color: var(--blue); }
+    .sm { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
+    .sm-green { background: rgba(0,212,170,0.15); color: var(--accent); }
+    .sm-blue { background: rgba(74,144,217,0.15); color: var(--blue); }
 
-    /* MAIN */
-    .main { flex: 1; padding: 32px; max-width: 800px; overflow-y: auto; }
-
-    /* PAGE */
-    .page { display: none; }
-    .page.active { display: block; animation: fadeIn 0.2s ease; }
+    .main { flex: 1; padding: 32px; max-width: 820px; }
+    .page { display: none; animation: fadeIn 0.2s ease; }
+    .page.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    /* ENDPOINT HEADER */
-    .endpoint-header { margin-bottom: 28px; }
-    .endpoint-badge {
+    .ep-header { margin-bottom: 28px; }
+    .ep-badge {
       display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px;
       background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
       padding: 6px 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
     }
-    .badge-get { color: var(--accent); font-weight: 700; }
-    .badge-path { color: var(--text); }
-    .endpoint-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; }
-    .endpoint-desc { color: var(--muted); font-size: 0.88rem; line-height: 1.5; }
+    .ep-get { color: var(--accent); font-weight: 700; }
+    .ep-get-blue { color: var(--blue); font-weight: 700; }
+    .ep-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; }
+    .ep-desc { color: var(--muted); font-size: 0.88rem; line-height: 1.5; }
 
-    /* SECTION */
-    .section { margin-bottom: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-    .section-header {
+    .section { margin-bottom: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .sec-head {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer;
-      user-select: none;
+      padding: 11px 16px; border-bottom: 1px solid var(--border);
     }
-    .section-header-left { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-    .section-icon { font-size: 0.9rem; }
-    .section-toggle { color: var(--dim); font-size: 0.7rem; transition: transform 0.2s; }
-    .section-body { padding: 16px; }
-    .section-body.collapsed { display: none; }
+    .sec-label { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .sec-body { padding: 16px; }
+    .sec-body.collapsed { display: none; }
 
-    /* PARAMS */
     .param-row { margin-bottom: 14px; }
     .param-label { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 0.82rem; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
-    .param-required { color: var(--accent2); font-size: 0.75rem; }
-    .param-optional { color: var(--dim); font-size: 0.75rem; font-family: 'Inter', sans-serif; font-weight: 400; }
-    .param-hint { font-size: 0.75rem; color: var(--dim); margin-top: 4px; font-family: 'Inter', sans-serif; font-weight: 400; }
-    .param-input {
+    .req { color: var(--accent2); }
+    .opt { color: var(--dim); font-size: 0.72rem; font-family: 'Inter', sans-serif; font-weight: 400; }
+    .param-hint { font-size: 0.74rem; color: var(--dim); margin-top: 4px; }
+    .param-input, .param-select {
       width: 100%; background: var(--bg); border: 1px solid var(--border2); border-radius: 6px;
-      padding: 9px 12px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.88rem;
-      outline: none; transition: border-color 0.15s;
+      padding: 9px 12px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.88rem; outline: none;
     }
-    .param-input:focus { border-color: var(--accent); }
-    .param-select {
-      width: 100%; background: var(--bg); border: 1px solid var(--border2); border-radius: 6px;
-      padding: 9px 12px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.88rem;
-      outline: none; cursor: pointer; appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 12px center;
-    }
-    .param-select:focus { border-color: var(--accent); }
+    .param-input:focus, .param-select:focus { border-color: var(--accent); }
+    .param-select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
 
-    /* EXECUTE BTN */
-    .execute-row { display: flex; gap: 10px; margin-top: 4px; }
-    .execute-btn {
+    .exec-row { display: flex; gap: 10px; margin-top: 4px; }
+    .exec-btn {
       padding: 10px 24px; background: var(--accent); color: #000; border: none;
-      border-radius: 6px; font-weight: 700; font-size: 0.88rem; cursor: pointer;
-      transition: all 0.15s; font-family: 'Inter', sans-serif;
+      border-radius: 6px; font-weight: 700; font-size: 0.88rem; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s;
     }
-    .execute-btn:hover { background: #00bfa0; }
-    .execute-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .execute-btn.blue-btn { background: var(--blue); color: #fff; }
-    .execute-btn.blue-btn:hover { background: #3a7bc4; }
+    .exec-btn:hover { background: #00bfa0; }
+    .exec-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .exec-btn.blue { background: var(--blue); color: #fff; }
+    .exec-btn.blue:hover { background: #3a7bc4; }
     .clear-btn {
-      padding: 10px 20px; background: transparent; color: var(--muted); border: 1px solid var(--border2);
-      border-radius: 6px; font-size: 0.88rem; cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif;
+      padding: 10px 20px; background: transparent; color: var(--muted);
+      border: 1px solid var(--border2); border-radius: 6px; font-size: 0.88rem; cursor: pointer; font-family: 'Inter', sans-serif;
     }
-    .clear-btn:hover { border-color: var(--text); color: var(--text); }
+    .clear-btn:hover { color: var(--text); border-color: var(--text); }
 
-    /* OUTPUT SECTIONS */
-    .output-row {
+    .out-row {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 16px; background: var(--surface2); border-bottom: 1px solid var(--border);
+      padding: 10px 16px; background: var(--surface2); border-bottom: 1px solid var(--border);
     }
-    .output-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
-    .copy-icon-btn {
+    .out-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+    .copy-btn {
       background: none; border: 1px solid var(--border); border-radius: 5px;
-      padding: 4px 8px; color: var(--muted); cursor: pointer; font-size: 0.75rem;
-      transition: all 0.15s; display: flex; align-items: center; gap: 4px;
+      padding: 4px 10px; color: var(--muted); cursor: pointer; font-size: 0.74rem; transition: all 0.15s;
     }
-    .copy-icon-btn:hover { color: var(--text); border-color: var(--border2); }
-    .copy-icon-btn.copied { color: var(--accent); border-color: var(--accent); }
-    .output-content {
-      padding: 14px 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
-      color: #ccc; line-height: 1.6; word-break: break-all; white-space: pre-wrap;
-    }
-    .output-content.url-content { color: var(--accent); cursor: pointer; }
-    .output-content.url-content:hover { text-decoration: underline; }
-
-    /* JSON RESPONSE */
-    .json-output {
-      padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
-      line-height: 1.7; max-height: 480px; overflow-y: auto; white-space: pre-wrap; word-break: break-word;
-    }
-    .json-key { color: #7ec8e3; }
-    .json-str { color: #a8e6cf; }
-    .json-num { color: #ffd700; }
-    .json-bool { color: #ff9f7f; }
-    .json-null { color: var(--dim); }
-
-    /* STATUS BADGE */
-    .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
-    .status-ok { background: rgba(0,212,170,0.15); color: var(--accent); }
-    .status-err { background: rgba(255,107,107,0.15); color: var(--accent2); }
-
-    /* LOADER */
+    .copy-btn:hover { color: var(--text); border-color: var(--border2); }
+    .copy-btn.copied { color: var(--accent); border-color: var(--accent); }
+    .out-content { padding: 13px 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: #ccc; line-height: 1.6; word-break: break-all; white-space: pre-wrap; }
+    .out-content.url { color: var(--accent); cursor: pointer; }
+    .out-content.url:hover { text-decoration: underline; }
+    .json-out { padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.7; max-height: 500px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+    .jk { color: #7ec8e3; } .js { color: #a8e6cf; } .jn { color: #ffd700; } .jb { color: #ff9f7f; } .jnu { color: var(--dim); }
+    .badge-ok { background: rgba(0,212,170,0.15); color: var(--accent); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
+    .badge-err { background: rgba(255,107,107,0.15); color: var(--accent2); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
     .spinner { width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* HOME */
-    .home-hero { margin-bottom: 36px; }
-    .home-hero h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; }
+    .home-hero h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
     .home-hero h1 span { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
-    .home-hero p { color: var(--muted); line-height: 1.6; max-width: 480px; }
-    .home-base-url {
+    .home-hero p { color: var(--muted); line-height: 1.6; max-width: 500px; margin-bottom: 24px; }
+    .base-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+    .base-label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); white-space: nowrap; }
+    .base-val { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--accent); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ep-list { display: flex; flex-direction: column; gap: 8px; }
+    .ep-row {
       background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;
+      padding: 13px 18px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: all 0.15s;
     }
-    .home-base-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); white-space: nowrap; }
-    .home-base-val { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--accent); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .endpoint-list { display: flex; flex-direction: column; gap: 10px; }
-    .endpoint-row {
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 14px 18px; display: flex; align-items: center; gap: 14px; cursor: pointer;
-      transition: all 0.15s;
-    }
-    .endpoint-row:hover { border-color: var(--border2); background: var(--surface2); }
-    .ep-method { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; background: rgba(0,212,170,0.12); color: var(--accent); }
-    .ep-path { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text); flex: 1; }
-    .ep-desc { font-size: 0.8rem; color: var(--muted); }
-    .ep-arrow { color: var(--dim); }
+    .ep-row:hover { border-color: var(--border2); background: var(--surface2); }
+    .ep-m { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
+    .ep-path { font-family: 'JetBrains Mono', monospace; font-size: 0.83rem; flex: 1; }
+    .ep-d { font-size: 0.78rem; color: var(--muted); }
 
-    @media (max-width: 640px) {
-      .sidebar { display: none; }
-      .main { padding: 20px 16px; }
-    }
+    @media (max-width: 640px) { .sidebar { display: none; } .main { padding: 20px 16px; } }
   </style>
 </head>
 <body>
@@ -216,203 +155,183 @@
     <button class="nav-link active" id="nav-home" onclick="showPage('home')">Home</button>
     <button class="nav-link" id="nav-mp3" onclick="showPage('mp3')">MP3</button>
     <button class="nav-link" id="nav-mp4" onclick="showPage('mp4')">MP4</button>
+    <button class="nav-link" id="nav-yt" onclick="showPage('yt')">YouTube</button>
   </div>
 </nav>
 
 <div class="layout">
-  <!-- SIDEBAR -->
   <div class="sidebar">
-    <div class="sidebar-section">
-      <div class="sidebar-label">Endpoints</div>
-      <div class="sidebar-item active" id="side-home" onclick="showPage('home')">
-        <span>🏠</span> Overview
-      </div>
-      <div class="sidebar-item" id="side-mp3" onclick="showPage('mp3')">
-        <span class="sidebar-method">GET</span> /youtubemp3
-      </div>
-      <div class="sidebar-item" id="side-mp4" onclick="showPage('mp4')">
-        <span class="sidebar-method blue">GET</span> /youtubemp4
-      </div>
-    </div>
-    <div class="sidebar-section">
-      <div class="sidebar-label">Other</div>
-      <div class="sidebar-item" onclick="showPage('mp3')">
-        <span class="sidebar-method">GET</span> /api/info
-      </div>
-      <div class="sidebar-item" onclick="showPage('mp3')">
-        <span class="sidebar-method">GET</span> /api/search
-      </div>
-      <div class="sidebar-item" onclick="showPage('mp3')">
-        <span class="sidebar-method">GET</span> /api/download
-      </div>
-    </div>
+    <div class="sidebar-label">Downloader</div>
+    <div class="sidebar-item active" id="side-home" onclick="showPage('home')">🏠 Overview</div>
+    <div class="sidebar-item" id="side-mp3" onclick="showPage('mp3')"><span class="sm sm-green">GET</span> /youtubemp3</div>
+    <div class="sidebar-item" id="side-mp4" onclick="showPage('mp4')"><span class="sm sm-blue">GET</span> /youtubemp4</div>
+    <div class="sidebar-item" id="side-yt" onclick="showPage('yt')"><span class="sm sm-green">GET</span> /download/youtube</div>
+    <div class="sidebar-label">Utilities</div>
+    <div class="sidebar-item" onclick="showPage('mp3')"><span class="sm sm-green">GET</span> /api/search</div>
+    <div class="sidebar-item" onclick="showPage('mp3')"><span class="sm sm-green">GET</span> /api/stream-url</div>
+    <div class="sidebar-item" onclick="showPage('mp3')"><span class="sm sm-green">GET</span> /api/download</div>
   </div>
 
-  <!-- MAIN CONTENT -->
   <div class="main">
 
-    <!-- HOME PAGE -->
+    <!-- HOME -->
     <div class="page active" id="page-home">
       <div class="home-hero">
         <h1>DrexMusic <span>API</span></h1>
-        <p>YouTube music & video downloader API. Search by name or URL, get JSON metadata + direct download links for TrashBot and other apps.</p>
+        <p>YouTube music & video downloader API. Search by name or URL — get JSON metadata + direct download links.</p>
       </div>
-      <div class="home-base-url">
-        <span class="home-base-label">Base URL</span>
-        <span class="home-base-val" id="home-base-url-val">loading...</span>
-        <button class="copy-icon-btn" onclick="copyText(this, document.getElementById('home-base-url-val').textContent)">📋 Copy</button>
+      <div class="base-box">
+        <span class="base-label">Base URL</span>
+        <span class="base-val" id="base-val">loading...</span>
+        <button class="copy-btn" onclick="copyText(this, document.getElementById('base-val').textContent)">📋 Copy</button>
       </div>
-      <div class="endpoint-list">
-        <div class="endpoint-row" onclick="showPage('mp3')">
-          <span class="ep-method">GET</span>
+      <div class="ep-list">
+        <div class="ep-row" onclick="showPage('mp3')">
+          <span class="ep-m sm-green">GET</span>
           <span class="ep-path">/downloader/youtubemp3</span>
-          <span class="ep-desc">Search + MP3 download URL</span>
-          <span class="ep-arrow">→</span>
+          <span class="ep-d">Search + MP3 link</span>
+          <span style="color:var(--dim)">→</span>
         </div>
-        <div class="endpoint-row" onclick="showPage('mp4')">
-          <span class="ep-method">GET</span>
+        <div class="ep-row" onclick="showPage('mp4')">
+          <span class="ep-m sm-blue">GET</span>
           <span class="ep-path">/downloader/youtubemp4</span>
-          <span class="ep-desc">Search + MP4 download URL</span>
-          <span class="ep-arrow">→</span>
+          <span class="ep-d">Search + MP4 link</span>
+          <span style="color:var(--dim)">→</span>
         </div>
-        <div class="endpoint-row" onclick="showPage('mp3')">
-          <span class="ep-method">GET</span>
-          <span class="ep-path">/api/search?q=</span>
-          <span class="ep-desc">Search YouTube</span>
-          <span class="ep-arrow">→</span>
+        <div class="ep-row" onclick="showPage('yt')">
+          <span class="ep-m sm-green">GET</span>
+          <span class="ep-path">/download/youtube</span>
+          <span class="ep-d">Full info + direct URL</span>
+          <span style="color:var(--dim)">→</span>
         </div>
-        <div class="endpoint-row" onclick="showPage('mp3')">
-          <span class="ep-method">GET</span>
-          <span class="ep-path">/api/download?url=&format=</span>
-          <span class="ep-desc">Stream file</span>
-          <span class="ep-arrow">→</span>
+        <div class="ep-row" onclick="showPage('mp3')">
+          <span class="ep-m sm-green">GET</span>
+          <span class="ep-path">/api/stream-url</span>
+          <span class="ep-d">Raw CDN stream URL</span>
+          <span style="color:var(--dim)">→</span>
         </div>
       </div>
     </div>
 
     <!-- MP3 PAGE -->
     <div class="page" id="page-mp3">
-      <div class="endpoint-header">
-        <div class="endpoint-badge">
-          <span class="badge-get">GET</span>
-          <span class="badge-path">/downloader/youtubemp3</span>
-        </div>
-        <div class="endpoint-title">YouTube Downloader — MP3</div>
-        <div class="endpoint-desc">Search YouTube by song name or paste a URL. Returns JSON with metadata and a ready-to-use MP3 download URL for your bot.</div>
+      <div class="ep-header">
+        <div class="ep-badge"><span class="ep-get">GET</span> /downloader/youtubemp3</div>
+        <div class="ep-title">YouTube Downloader — MP3</div>
+        <div class="ep-desc">Search by song name or paste a YouTube URL. Returns JSON array with metadata + MP3 download URL.</div>
       </div>
-
-      <!-- PARAMETERS -->
       <div class="section">
-        <div class="section-header" onclick="toggleSection(this)">
-          <div class="section-header-left"><span class="section-icon">≡</span> PARAMETERS</div>
-          <span class="section-toggle">▼</span>
-        </div>
-        <div class="section-body" id="mp3-params">
+        <div class="sec-head"><div class="sec-label">≡ Parameters</div></div>
+        <div class="sec-body">
           <div class="param-row">
-            <div class="param-label">q <span class="param-required">*</span></div>
+            <div class="param-label">q <span class="req">*</span></div>
             <input class="param-input" id="mp3-q" placeholder="e.g. Faded Alan Walker" />
             <div class="param-hint">Song name or YouTube URL</div>
           </div>
           <div class="param-row">
-            <div class="param-label">limit <span class="param-optional">(optional)</span></div>
+            <div class="param-label">limit <span class="opt">(optional)</span></div>
             <input class="param-input" id="mp3-limit" placeholder="5" type="number" min="1" max="10" />
             <div class="param-hint">Number of results (default: 5)</div>
           </div>
-          <div class="execute-row">
-            <button class="execute-btn" id="mp3-exec-btn" onclick="execute('mp3')">▶ Execute</button>
-            <button class="clear-btn" onclick="clearMp3()">Clear</button>
+          <div class="exec-row">
+            <button class="exec-btn" id="mp3-btn" onclick="execute('mp3')">▶ Execute</button>
+            <button class="clear-btn" onclick="clearPage('mp3')">Clear</button>
           </div>
         </div>
       </div>
-
-      <!-- REQUEST URL -->
-      <div class="section" id="mp3-req-section" style="display:none">
-        <div class="output-row">
-          <div class="output-label"><span>🔗</span> REQUEST URL</div>
-          <button class="copy-icon-btn" id="mp3-req-copy" onclick="copyOutputUrl('mp3-req-copy', 'mp3-req-url-text')">📋 Copy</button>
-        </div>
-        <div class="output-content url-content" id="mp3-req-url-text" onclick="copyOutputUrl('mp3-req-copy', 'mp3-req-url-text')"></div>
+      <div id="mp3-req-sec" style="display:none" class="section">
+        <div class="out-row"><div class="out-label">🔗 Request URL</div><button class="copy-btn" id="mp3-req-cb" onclick="copyEl(this,'mp3-req-txt')">📋 Copy</button></div>
+        <div class="out-content url" id="mp3-req-txt" onclick="copyEl(document.getElementById('mp3-req-cb'),'mp3-req-txt')"></div>
       </div>
-
-      <!-- CURL COMMAND -->
-      <div class="section" id="mp3-curl-section" style="display:none">
-        <div class="output-row">
-          <div class="output-label"><span>⬛</span> CURL COMMAND</div>
-          <button class="copy-icon-btn" id="mp3-curl-copy" onclick="copyOutputUrl('mp3-curl-copy', 'mp3-curl-text')">📋 Copy</button>
-        </div>
-        <div class="output-content" id="mp3-curl-text"></div>
+      <div id="mp3-curl-sec" style="display:none" class="section">
+        <div class="out-row"><div class="out-label">⬛ Curl Command</div><button class="copy-btn" id="mp3-curl-cb" onclick="copyEl(this,'mp3-curl-txt')">📋 Copy</button></div>
+        <div class="out-content" id="mp3-curl-txt"></div>
       </div>
-
-      <!-- RESPONSE -->
-      <div class="section" id="mp3-res-section" style="display:none">
-        <div class="output-row">
-          <div class="output-label"><span>◇</span> RESPONSE <span id="mp3-status-badge"></span></div>
-          <button class="copy-icon-btn" id="mp3-res-copy" onclick="copyOutputUrl('mp3-res-copy', 'mp3-res-text')">📋 Copy</button>
-        </div>
-        <div class="json-output" id="mp3-res-text"></div>
+      <div id="mp3-res-sec" style="display:none" class="section">
+        <div class="out-row"><div class="out-label">◇ Response <span id="mp3-status"></span></div><button class="copy-btn" id="mp3-res-cb" onclick="copyEl(this,'mp3-res-txt')">📋 Copy</button></div>
+        <div class="json-out" id="mp3-res-txt"></div>
       </div>
     </div>
 
     <!-- MP4 PAGE -->
     <div class="page" id="page-mp4">
-      <div class="endpoint-header">
-        <div class="endpoint-badge">
-          <span class="badge-get" style="color:var(--blue)">GET</span>
-          <span class="badge-path">/downloader/youtubemp4</span>
-        </div>
-        <div class="endpoint-title">YouTube Downloader — MP4</div>
-        <div class="endpoint-desc">Search YouTube by video name or paste a URL. Returns JSON with metadata and a ready-to-use MP4 download URL for your bot.</div>
+      <div class="ep-header">
+        <div class="ep-badge"><span class="ep-get-blue">GET</span> /downloader/youtubemp4</div>
+        <div class="ep-title">YouTube Downloader — MP4</div>
+        <div class="ep-desc">Search by video name or paste a YouTube URL. Returns JSON array with metadata + MP4 download URL.</div>
       </div>
-
-      <!-- PARAMETERS -->
       <div class="section">
-        <div class="section-header" onclick="toggleSection(this)">
-          <div class="section-header-left"><span class="section-icon">≡</span> PARAMETERS</div>
-          <span class="section-toggle">▼</span>
-        </div>
-        <div class="section-body" id="mp4-params">
+        <div class="sec-head"><div class="sec-label">≡ Parameters</div></div>
+        <div class="sec-body">
           <div class="param-row">
-            <div class="param-label">q <span class="param-required">*</span></div>
+            <div class="param-label">q <span class="req">*</span></div>
             <input class="param-input" id="mp4-q" placeholder="e.g. Faded Alan Walker" />
             <div class="param-hint">Video name or YouTube URL</div>
           </div>
           <div class="param-row">
-            <div class="param-label">limit <span class="param-optional">(optional)</span></div>
+            <div class="param-label">limit <span class="opt">(optional)</span></div>
             <input class="param-input" id="mp4-limit" placeholder="5" type="number" min="1" max="10" />
             <div class="param-hint">Number of results (default: 5)</div>
           </div>
-          <div class="execute-row">
-            <button class="execute-btn blue-btn" id="mp4-exec-btn" onclick="execute('mp4')">▶ Execute</button>
-            <button class="clear-btn" onclick="clearMp4()">Clear</button>
+          <div class="exec-row">
+            <button class="exec-btn blue" id="mp4-btn" onclick="execute('mp4')">▶ Execute</button>
+            <button class="clear-btn" onclick="clearPage('mp4')">Clear</button>
           </div>
         </div>
       </div>
-
-      <!-- REQUEST URL -->
-      <div class="section" id="mp4-req-section" style="display:none">
-        <div class="output-row">
-          <div class="output-label"><span>🔗</span> REQUEST URL</div>
-          <button class="copy-icon-btn" id="mp4-req-copy" onclick="copyOutputUrl('mp4-req-copy', 'mp4-req-url-text')">📋 Copy</button>
-        </div>
-        <div class="output-content url-content" id="mp4-req-url-text" onclick="copyOutputUrl('mp4-req-copy', 'mp4-req-url-text')"></div>
+      <div id="mp4-req-sec" style="display:none" class="section">
+        <div class="out-row"><div class="out-label">🔗 Request URL</div><button class="copy-btn" id="mp4-req-cb" onclick="copyEl(this,'mp4-req-txt')">📋 Copy</button></div>
+        <div class="out-content url" id="mp4-req-txt" onclick="copyEl(document.getElementById('mp4-req-cb'),'mp4-req-txt')"></div>
       </div>
-
-      <!-- CURL COMMAND -->
-      <div class="section" id="mp4-curl-section" style="display:none">
-        <div class="output-row">
-          <div class="output-label"><span>⬛</span> CURL COMMAND</div>
-          <button class="copy-icon-btn" id="mp4-curl-copy" onclick="copyOutputUrl('mp4-curl-copy', 'mp4-curl-text')">📋 Copy</button>
-        </div>
-        <div class="output-content" id="mp4-curl-text"></div>
+      <div id="mp4-curl-sec" style="display:none" class="section">
+        <div class="out-row"><div class="out-label">⬛ Curl Command</div><button class="copy-btn" id="mp4-curl-cb" onclick="copyEl(this,'mp4-curl-txt')">📋 Copy</button></div>
+        <div class="out-content" id="mp4-curl-txt"></div>
       </div>
+      <div id="mp4-res-sec" style="display:none" class="section">
+        <div class="out-row"><div class="out-label">◇ Response <span id="mp4-status"></span></div><button class="copy-btn" id="mp4-res-cb" onclick="copyEl(this,'mp4-res-txt')">📋 Copy</button></div>
+        <div class="json-out" id="mp4-res-txt"></div>
+      </div>
+    </div>
 
-      <!-- RESPONSE -->
-      <div class="section" id="mp4-res-section" style="display:none">
-        <div class="output-row">
-          <div class="output-label"><span>◇</span> RESPONSE <span id="mp4-status-badge"></span></div>
-          <button class="copy-icon-btn" id="mp4-res-copy" onclick="copyOutputUrl('mp4-res-copy', 'mp4-res-text')">📋 Copy</button>
+    <!-- /download/youtube PAGE -->
+    <div class="page" id="page-yt">
+      <div class="ep-header">
+        <div class="ep-badge"><span class="ep-get">GET</span> /download/youtube</div>
+        <div class="ep-title">YouTube — Full Info + Direct URL</div>
+        <div class="ep-desc">Search by name or URL. Returns a single result with full metadata, direct CDN stream URL, and download URL.</div>
+      </div>
+      <div class="section">
+        <div class="sec-head"><div class="sec-label">≡ Parameters</div></div>
+        <div class="sec-body">
+          <div class="param-row">
+            <div class="param-label">q <span class="req">*</span></div>
+            <input class="param-input" id="yt-q" placeholder="e.g. Faded or https://youtu.be/..." />
+            <div class="param-hint">Song/video name or YouTube URL</div>
+          </div>
+          <div class="param-row">
+            <div class="param-label">type <span class="opt">(optional)</span></div>
+            <select class="param-select" id="yt-type">
+              <option value="mp3">mp3 — audio only</option>
+              <option value="mp4">mp4 — video + audio</option>
+            </select>
+          </div>
+          <div class="exec-row">
+            <button class="exec-btn" id="yt-btn" onclick="execute('yt')">▶ Execute</button>
+            <button class="clear-btn" onclick="clearPage('yt')">Clear</button>
+          </div>
         </div>
-        <div class="json-output" id="mp4-res-text"></div>
+      </div>
+      <div id="yt-req-sec" style="display:none" class="section">
+        <div class="out-row"><div class="out-label">🔗 Request URL</div><button class="copy-btn" id="yt-req-cb" onclick="copyEl(this,'yt-req-txt')">📋 Copy</button></div>
+        <div class="out-content url" id="yt-req-txt" onclick="copyEl(document.getElementById('yt-req-cb'),'yt-req-txt')"></div>
+      </div>
+      <div id="yt-curl-sec" style="display:none" class="section">
+        <div class="out-row"><div class="out-label">⬛ Curl Command</div><button class="copy-btn" id="yt-curl-cb" onclick="copyEl(this,'yt-curl-txt')">📋 Copy</button></div>
+        <div class="out-content" id="yt-curl-txt"></div>
+      </div>
+      <div id="yt-res-sec" style="display:none" class="section">
+        <div class="out-row"><div class="out-label">◇ Response <span id="yt-status"></span></div><button class="copy-btn" id="yt-res-cb" onclick="copyEl(this,'yt-res-txt')">📋 Copy</button></div>
+        <div class="json-out" id="yt-res-txt"></div>
       </div>
     </div>
 
@@ -421,7 +340,7 @@
 
 <script>
   const BASE = window.location.origin;
-  document.getElementById('home-base-url-val').textContent = BASE;
+  document.getElementById('base-val').textContent = BASE;
 
   function showPage(id) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -429,87 +348,74 @@
     document.getElementById('page-' + id).classList.add('active');
     if (document.getElementById('nav-' + id)) document.getElementById('nav-' + id).classList.add('active');
     if (document.getElementById('side-' + id)) document.getElementById('side-' + id).classList.add('active');
+    return false;
   }
 
-  function toggleSection(header) {
-    const body = header.nextElementSibling;
-    const toggle = header.querySelector('.section-toggle');
-    body.classList.toggle('collapsed');
-    toggle.textContent = body.classList.contains('collapsed') ? '▶' : '▼';
-  }
-
-  function syntaxHighlight(json) {
-    const str = typeof json === 'string' ? json : JSON.stringify(json, null, 2);
-    return str
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
-        let cls = 'json-num';
-        if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-str';
-        else if (/true|false/.test(match)) cls = 'json-bool';
-        else if (/null/.test(match)) cls = 'json-null';
-        return `<span class="${cls}">${match}</span>`;
+  function highlight(json) {
+    const s = typeof json === 'string' ? json : JSON.stringify(json, null, 2);
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+        let c = 'jn';
+        if (/^"/.test(m)) c = /:$/.test(m) ? 'jk' : 'js';
+        else if (/true|false/.test(m)) c = 'jb';
+        else if (/null/.test(m)) c = 'jnu';
+        return `<span class="${c}">${m}</span>`;
       });
+  }
+
+  function getEndpoint(type) {
+    const q = document.getElementById(`${type}-q`).value.trim();
+    const limit = document.getElementById(`${type}-limit`)?.value || '5';
+    const ytType = document.getElementById(`${type}-type`)?.value || 'mp3';
+
+    if (type === 'mp3') return `${BASE}/downloader/youtubemp3?q=${encodeURIComponent(q)}&limit=${limit}`;
+    if (type === 'mp4') return `${BASE}/downloader/youtubemp4?q=${encodeURIComponent(q)}&limit=${limit}`;
+    if (type === 'yt')  return `${BASE}/download/youtube?q=${encodeURIComponent(q)}&type=${ytType}`;
   }
 
   async function execute(type) {
     const q = document.getElementById(`${type}-q`).value.trim();
     if (!q) { document.getElementById(`${type}-q`).focus(); return; }
 
-    const limit = document.getElementById(`${type}-limit`).value || '5';
-    const endpoint = type === 'mp3' ? '/downloader/youtubemp3' : '/downloader/youtubemp4';
-    const fullUrl = `${BASE}${endpoint}?q=${encodeURIComponent(q)}&limit=${limit}`;
-    const curlCmd = `curl -X GET "${fullUrl}"`;
-
-    const btn = document.getElementById(`${type}-exec-btn`);
+    const btn = document.getElementById(`${type}-btn`);
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Running...';
+    btn.innerHTML = '<span class="spinner"></span>';
 
-    // Show request URL + curl immediately
-    document.getElementById(`${type}-req-section`).style.display = 'block';
-    document.getElementById(`${type}-curl-section`).style.display = 'block';
-    document.getElementById(`${type}-res-section`).style.display = 'block';
-    document.getElementById(`${type}-req-url-text`).textContent = fullUrl;
-    document.getElementById(`${type}-curl-text`).textContent = curlCmd;
-    document.getElementById(`${type}-res-text`).innerHTML = '<span class="spinner"></span> Fetching...';
-    document.getElementById(`${type}-status-badge`).innerHTML = '';
+    const url = getEndpoint(type);
+    const curl = `curl -X GET "${url}"`;
+
+    // Show sections
+    ['req','curl','res'].forEach(s => document.getElementById(`${type}-${s}-sec`).style.display = 'block');
+    document.getElementById(`${type}-req-txt`).textContent = url;
+    document.getElementById(`${type}-curl-txt`).textContent = curl;
+    document.getElementById(`${type}-res-txt`).innerHTML = '<span class="spinner"></span> Fetching...';
+    document.getElementById(`${type}-status`).innerHTML = '';
 
     try {
-      const res = await fetch(fullUrl);
+      const res = await fetch(url);
       const data = await res.json();
-      const statusBadge = document.getElementById(`${type}-status-badge`);
-
-      if (res.ok) {
-        statusBadge.innerHTML = `<span class="status-badge status-ok">200 OK</span>`;
-        document.getElementById(`${type}-res-text`).innerHTML = syntaxHighlight(data);
-      } else {
-        statusBadge.innerHTML = `<span class="status-badge status-err">${res.status} Error</span>`;
-        document.getElementById(`${type}-res-text`).innerHTML = syntaxHighlight(data);
-      }
-    } catch (e) {
-      document.getElementById(`${type}-status-badge`).innerHTML = `<span class="status-badge status-err">Error</span>`;
-      document.getElementById(`${type}-res-text`).textContent = e.message;
+      document.getElementById(`${type}-status`).innerHTML = res.ok
+        ? `<span class="badge-ok">200 OK</span>`
+        : `<span class="badge-err">${res.status} Error</span>`;
+      document.getElementById(`${type}-res-txt`).innerHTML = highlight(data);
+    } catch(e) {
+      document.getElementById(`${type}-status`).innerHTML = `<span class="badge-err">Error</span>`;
+      document.getElementById(`${type}-res-txt`).textContent = e.message;
     }
 
     btn.disabled = false;
-    btn.innerHTML = type === 'mp3' ? '▶ Execute' : '▶ Execute';
+    btn.textContent = '▶ Execute';
   }
 
-  function clearMp3() {
-    document.getElementById('mp3-q').value = '';
-    document.getElementById('mp3-limit').value = '';
-    ['mp3-req-section','mp3-curl-section','mp3-res-section'].forEach(id => document.getElementById(id).style.display = 'none');
+  function clearPage(type) {
+    document.getElementById(`${type}-q`).value = '';
+    if (document.getElementById(`${type}-limit`)) document.getElementById(`${type}-limit`).value = '';
+    ['req','curl','res'].forEach(s => document.getElementById(`${type}-${s}-sec`).style.display = 'none');
   }
 
-  function clearMp4() {
-    document.getElementById('mp4-q').value = '';
-    document.getElementById('mp4-limit').value = '';
-    ['mp4-req-section','mp4-curl-section','mp4-res-section'].forEach(id => document.getElementById(id).style.display = 'none');
-  }
-
-  function copyOutputUrl(btnId, textId) {
-    const text = document.getElementById(textId).textContent;
+  function copyEl(btn, txtId) {
+    const text = document.getElementById(txtId).textContent;
     navigator.clipboard.writeText(text).then(() => {
-      const btn = document.getElementById(btnId);
       btn.textContent = '✅ Copied';
       btn.classList.add('copied');
       setTimeout(() => { btn.textContent = '📋 Copy'; btn.classList.remove('copied'); }, 2000);
@@ -524,9 +430,9 @@
     });
   }
 
-  // Enter key
-  ['mp3-q','mp3-limit'].forEach(id => document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') execute('mp3'); }));
-  ['mp4-q','mp4-limit'].forEach(id => document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') execute('mp4'); }));
+  ['mp3','mp4','yt'].forEach(t => {
+    document.getElementById(`${t}-q`).addEventListener('keydown', e => { if (e.key === 'Enter') execute(t); });
+  });
 </script>
 </body>
 </html>
