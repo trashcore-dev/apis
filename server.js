@@ -1,25 +1,76 @@
 const express = require('express');
 const cors = require('cors');
 const yts = require('yt-search');
-const playdl = require('play-dl');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-function isYouTubeUrl(url) {
-  return url.includes('youtube.com') || url.includes('youtu.be') || url.includes('music.youtube.com');
+// Public Invidious instances — fallback through them
+const INVIDIOUS = [
+  'https://iv.datura.network',
+  'https://invidious.fdn.fr',
+  'https://invidious.privacydev.net',
+  'https://yt.cdaut.de',
+  'https://invidious.nerdvpn.de',
+];
+
+async function invidiousRequest(path) {
+  for (const host of INVIDIOUS) {
+    try {
+      const res = await fetch(`${host}${path}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && !data.error) return data;
+      }
+    } catch {}
+  }
+  throw new Error('All Invidious instances failed');
 }
 
-function extractVideoId(url) {
-  const match = url.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
-  return match ? match[1] : null;
+async function getVideoInfo(videoId) {
+  return invidiousRequest(`/api/v1/videos/${videoId}?fields=videoId,title,author,lengthSeconds,videoThumbnails,adaptiveFormats,formatStreams`);
+}
+
+function getBestAudio(info) {
+  const audio = (info.adaptiveFormats || [])
+    .filter(f => f.type?.includes('audio') && f.url)
+    .sort((a, b) => (parseInt(b.bitrate) || 0) - (parseInt(a.bitrate) || 0));
+  return audio[0];
+}
+
+function getBestVideo(info) {
+  // Try combined formats first
+  const combined = (info.formatStreams || [])
+    .filter(f => f.url && f.type?.includes('video'))
+    .sort((a, b) => (parseInt(b.resolution) || 0) - (parseInt(a.resolution) || 0));
+  if (combined.length) return combined[0];
+
+  // Fallback to adaptive
+  const adaptive = (info.adaptiveFormats || [])
+    .filter(f => f.type?.includes('video') && f.url)
+    .sort((a, b) => (parseInt(b.bitrate) || 0) - (parseInt(a.bitrate) || 0));
+  return adaptive[0];
+}
+
+function getBestThumb(thumbs) {
+  if (!thumbs || !thumbs.length) return null;
+  const sorted = [...thumbs].sort((a, b) => (b.width || 0) - (a.width || 0));
+  return sorted[0]?.url || null;
 }
 
 // GET /api/health
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', engine: 'play-dl', node: process.version });
+app.get('/api/health', async (req, res) => {
+  try {
+    await invidiousRequest('/api/v1/videos/dQw4w9WgXcQ?fields=videoId,title');
+    res.json({ status: 'ok', engine: 'invidious' });
+  } catch(e) {
+    res.status(500).json({ status: 'error', message: e.message });
+  }
 });
 
 // GET /api/search?q=&limit=
@@ -37,82 +88,120 @@ app.get('/api/search', async (req, res) => {
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
-// GET /api/info?url=
-app.get('/api/info', async (req, res) => {
-  const { url } = req.query;
-  if (!url) return res.status(400).json({ error: 'url is required' });
-  try {
-    const info = await playdl.video_info(url);
-    const d = info.video_details;
-    return res.json({
-      id: d.id, title: d.title,
-      uploader: d.channel?.name || null,
-      duration: d.durationInSec,
-      thumbnail: d.thumbnails?.slice(-1)[0]?.url || null,
-      webpage_url: d.url,
-    });
-  } catch (err) { return res.status(500).json({ error: err.message }); }
-});
-
-// GET /api/stream-url?url=&format=audio
-// Returns direct stream URL for preview/download
-app.get('/api/stream-url', async (req, res) => {
-  const { url, format = 'audio' } = req.query;
-  if (!url) return res.status(400).json({ error: 'url is required' });
-  try {
-    const info = await playdl.video_info(url);
-    const d = info.video_details;
-    const stream = await playdl.stream_from_info(info, { quality: 2 });
-    return res.json({
-      stream_url: `${req.protocol}://${req.get('host')}/api/stream?url=${encodeURIComponent(url)}&format=${format}`,
-      title: d.title,
-      uploader: d.channel?.name || null,
-      duration: d.durationInSec,
-      thumbnail: d.thumbnails?.slice(-1)[0]?.url || null,
-    });
-  } catch (err) { return res.status(500).json({ error: err.message }); }
-});
-
 // GET /api/stream?url=&format=audio|video
-// Actual streaming endpoint — pipes audio/video to client
+// Proxies the stream through server
 app.get('/api/stream', async (req, res) => {
   const { url, format = 'audio' } = req.query;
   if (!url) return res.status(400).json({ error: 'url is required' });
+
+  const match = url.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+  const videoId = match ? match[1] : url.length === 11 ? url : null;
+  if (!videoId) return res.status(400).json({ error: 'Invalid YouTube URL or video ID' });
+
   try {
-    const info = await playdl.video_info(url);
-    const d = info.video_details;
-    const safeName = (d.title || 'audio').replace(/[^a-zA-Z0-9 _-]/g, '').trim().substring(0, 80);
+    const info = await getVideoInfo(videoId);
+    const fmt = format === 'video' ? getBestVideo(info) : getBestAudio(info);
+    if (!fmt?.url) throw new Error('No stream URL found');
 
-    const stream = await playdl.stream_from_info(info, { quality: 2 });
+    const safeName = (info.title || 'audio').replace(/[^a-zA-Z0-9 _-]/g, '').trim().substring(0, 80);
+    const isDownload = req.query.dl === '1';
+    const ext = format === 'video' ? 'mp4' : 'webm';
+    const mime = format === 'video' ? 'video/mp4' : 'audio/webm';
 
-    res.setHeader('Content-Type', stream.type === 'video/webm' ? 'video/webm' : 'audio/webm');
-    res.setHeader('Content-Disposition', `inline; filename="${safeName}.webm"`);
+    // Proxy the stream
+    const upstream = await fetch(fmt.url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0',
+        'Referer': 'https://www.youtube.com/',
+      },
+      signal: AbortSignal.timeout(30000),
+    });
 
-    stream.stream.pipe(res);
+    if (!upstream.ok) throw new Error(`Upstream error: ${upstream.status}`);
 
-    req.on('close', () => { try { stream.stream.destroy(); } catch {} });
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Accept-Ranges', 'bytes');
+    if (isDownload) {
+      res.setHeader('Content-Disposition', `attachment; filename="${safeName}.${ext}"`);
+    } else {
+      res.setHeader('Content-Disposition', `inline; filename="${safeName}.${ext}"`);
+    }
+    if (upstream.headers.get('content-length')) {
+      res.setHeader('Content-Length', upstream.headers.get('content-length'));
+    }
+
+    const { Readable } = require('stream');
+    Readable.fromWeb(upstream.body).pipe(res);
+
+    req.on('close', () => {});
+  } catch (err) {
+    if (!res.headersSent) res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/stream-url?url=&format=audio|video
+app.get('/api/stream-url', async (req, res) => {
+  const { url, format = 'audio' } = req.query;
+  if (!url) return res.status(400).json({ error: 'url is required' });
+
+  const match = url.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+  const videoId = match ? match[1] : url.length === 11 ? url : null;
+  if (!videoId) return res.status(400).json({ error: 'Invalid YouTube URL' });
+
+  try {
+    const info = await getVideoInfo(videoId);
+    const fmt = format === 'video' ? getBestVideo(info) : getBestAudio(info);
+    if (!fmt?.url) throw new Error('No stream URL found');
+
+    const host = `${req.protocol}://${req.get('host')}`;
+    return res.json({
+      stream_url: `${host}/api/stream?url=${encodeURIComponent(url)}&format=${format}`,
+      title: info.title,
+      uploader: info.author,
+      duration: info.lengthSeconds,
+      thumbnail: getBestThumb(info.videoThumbnails),
+    });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
 // GET /api/download?url=&format=audio|video
-// Downloads file with attachment header
 app.get('/api/download', async (req, res) => {
+  req.query.dl = '1';
+  // Forward to stream endpoint
   const { url, format = 'audio' } = req.query;
   if (!url) return res.status(400).json({ error: 'url is required' });
+
+  const match = url.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+  const videoId = match ? match[1] : url.length === 11 ? url : null;
+  if (!videoId) return res.status(400).json({ error: 'Invalid YouTube URL' });
+
   try {
-    const info = await playdl.video_info(url);
-    const d = info.video_details;
-    const safeName = (d.title || 'audio').replace(/[^a-zA-Z0-9 _-]/g, '').trim().substring(0, 80);
+    const info = await getVideoInfo(videoId);
+    const fmt = format === 'video' ? getBestVideo(info) : getBestAudio(info);
+    if (!fmt?.url) throw new Error('No stream URL found');
 
-    const stream = await playdl.stream_from_info(info, { quality: 2 });
+    const safeName = (info.title || 'audio').replace(/[^a-zA-Z0-9 _-]/g, '').trim().substring(0, 80);
+    const ext = format === 'video' ? 'mp4' : 'webm';
+    const mime = format === 'video' ? 'video/mp4' : 'audio/webm';
 
-    res.setHeader('Content-Disposition', `attachment; filename="${safeName}.webm"`);
-    res.setHeader('Content-Type', 'audio/webm');
+    const upstream = await fetch(fmt.url, {
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.youtube.com/' },
+      signal: AbortSignal.timeout(30000),
+    });
 
-    stream.stream.pipe(res);
+    if (!upstream.ok) throw new Error(`Upstream: ${upstream.status}`);
 
-    req.on('close', () => { try { stream.stream.destroy(); } catch {} });
-  } catch (err) { return res.status(500).json({ error: err.message }); }
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Content-Disposition', `attachment; filename="${safeName}.${ext}"`);
+    if (upstream.headers.get('content-length')) {
+      res.setHeader('Content-Length', upstream.headers.get('content-length'));
+    }
+
+    const { Readable } = require('stream');
+    Readable.fromWeb(upstream.body).pipe(res);
+  } catch (err) {
+    if (!res.headersSent) res.status(500).json({ error: err.message });
+  }
 });
 
 // GET /downloader/youtubemp3?q=&limit=
@@ -127,7 +216,7 @@ app.get('/downloader/youtubemp3', async (req, res) => {
       uploader: v.author?.name || null,
       duration: v.duration?.seconds || null,
       thumbnail: v.thumbnail, url: v.url,
-      stream_url: `${host}/api/stream-url?url=${encodeURIComponent(v.url)}&format=audio`,
+      stream_url: `${host}/api/stream?url=${encodeURIComponent(v.url)}&format=audio`,
       download_url: `${host}/api/download?url=${encodeURIComponent(v.url)}&format=audio`,
     })));
   } catch (err) { return res.status(500).json({ error: err.message }); }
@@ -145,7 +234,7 @@ app.get('/downloader/youtubemp4', async (req, res) => {
       uploader: v.author?.name || null,
       duration: v.duration?.seconds || null,
       thumbnail: v.thumbnail, url: v.url,
-      stream_url: `${host}/api/stream-url?url=${encodeURIComponent(v.url)}&format=video`,
+      stream_url: `${host}/api/stream?url=${encodeURIComponent(v.url)}&format=video`,
       download_url: `${host}/api/download?url=${encodeURIComponent(v.url)}&format=video`,
     })));
   } catch (err) { return res.status(500).json({ error: err.message }); }
@@ -156,31 +245,34 @@ app.get('/download/youtube', async (req, res) => {
   const { q, type = 'mp3' } = req.query;
   if (!q) return res.status(400).json({ status: false, message: 'q is required' });
   try {
-    let videoUrl = q;
-    let title = q;
+    let videoId;
+    let searchTitle;
 
-    if (!isYouTubeUrl(q)) {
+    const urlMatch = q.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+    if (urlMatch) {
+      videoId = urlMatch[1];
+    } else {
       const r = await yts(q);
       if (!r.videos.length) return res.status(404).json({ status: false, message: 'No results found' });
-      videoUrl = r.videos[0].url;
+      videoId = r.videos[0].videoId;
     }
 
-    const info = await playdl.video_info(videoUrl);
-    const d = info.video_details;
+    const info = await getVideoInfo(videoId);
     const host = `${req.protocol}://${req.get('host')}`;
+    const format = type === 'mp4' ? 'video' : 'audio';
 
     return res.json({
       status: true,
       creator: 'DrexMusic',
       result: {
-        id: d.id,
-        title: d.title,
-        author: d.channel?.name || null,
-        duration: d.durationInSec,
-        thumbnail: d.thumbnails?.slice(-1)[0]?.url || null,
+        id: info.videoId,
+        title: info.title,
+        author: info.author,
+        duration: info.lengthSeconds,
+        thumbnail: getBestThumb(info.videoThumbnails),
         format: type,
-        stream_url: `${host}/api/stream?url=${encodeURIComponent(videoUrl)}`,
-        download_url: `${host}/api/download?url=${encodeURIComponent(videoUrl)}&format=${type === 'mp3' ? 'audio' : 'video'}`,
+        stream_url: `${host}/api/stream?url=${encodeURIComponent(`https://youtube.com/watch?v=${videoId}`)}&format=${format}`,
+        download_url: `${host}/api/download?url=${encodeURIComponent(`https://youtube.com/watch?v=${videoId}`)}&format=${format}`,
       }
     });
   } catch (err) { return res.status(500).json({ status: false, message: err.message }); }
