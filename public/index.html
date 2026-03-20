@@ -32,7 +32,6 @@
       overflow-x: hidden;
     }
 
-    /* BG GRADIENT */
     body::before {
       content: '';
       position: fixed;
@@ -44,7 +43,6 @@
       z-index: 0;
     }
 
-    /* NAV */
     nav {
       position: sticky; top: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
@@ -67,7 +65,6 @@
     .nav-tab:hover { color: var(--text); background: rgba(255,255,255,0.05); }
     .nav-tab.active { color: var(--text); background: rgba(108,99,255,0.15); border-color: rgba(108,99,255,0.3); }
 
-    /* HERO */
     .hero {
       position: relative; z-index: 1;
       text-align: center; padding: 72px 24px 48px;
@@ -95,7 +92,6 @@
     }
     .hero p { color: var(--muted); font-size: 1.05rem; font-weight: 300; max-width: 440px; margin: 0 auto 40px; line-height: 1.6; }
 
-    /* FORMAT TOGGLE */
     .format-toggle {
       display: inline-flex; gap: 0; background: rgba(255,255,255,0.05);
       border: 1px solid var(--border); border-radius: 100px; padding: 4px;
@@ -109,7 +105,6 @@
     .fmt-btn.active { background: var(--accent); color: #fff; }
     .fmt-btn:not(.active):hover { color: var(--text); }
 
-    /* SEARCH */
     .search-wrap {
       max-width: 620px; margin: 0 auto;
       animation: fadeUp 0.6s 0.1s ease both;
@@ -136,10 +131,8 @@
     .search-go:hover { background: #5a52ee; transform: translateY(-1px); }
     .search-go:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-    /* MAIN */
     .main { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; padding: 0 24px 80px; }
 
-    /* RESULTS */
     #results { margin-top: 40px; }
     .results-title {
       font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em;
@@ -165,7 +158,6 @@
     }
     .thumb-ph { width: 72px; height: 72px; border-radius: 10px; background: rgba(108,99,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; flex-shrink: 0; }
 
-    /* PLAY BUTTON OVERLAY */
     .play-overlay {
       position: absolute; inset: 0; border-radius: 10px;
       background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
@@ -186,7 +178,6 @@
       margin-left: auto; align-self: flex-start; flex-shrink: 0;
     }
 
-    /* ACTION BUTTONS */
     .act-btn {
       display: flex; align-items: center; gap: 5px;
       padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
@@ -203,7 +194,6 @@
     .act-btn.dl-video { border-color: rgba(255,101,132,0.3); color: var(--accent2); }
     .act-btn.dl-video:hover { background: rgba(255,101,132,0.1); }
 
-    /* AUDIO PLAYER BAR */
     .player-bar {
       margin: 0 16px 16px;
       background: rgba(108,99,255,0.08); border: 1px solid rgba(108,99,255,0.2);
@@ -220,20 +210,17 @@
     .progress-wrap { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; cursor: pointer; position: relative; }
     .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; width: 0%; transition: width 0.1s linear; pointer-events: none; }
 
-    /* LOADER */
     .loader { display: flex; align-items: center; justify-content: center; padding: 60px; gap: 12px; color: var(--muted); font-size: 0.9rem; }
     .spin { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.65s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .error-box { background: rgba(255,101,132,0.08); border: 1px solid rgba(255,101,132,0.2); border-radius: 12px; padding: 16px 20px; color: #ff8fa3; font-size: 0.9rem; }
 
-    /* EMPTY STATE */
     .empty-state { text-align: center; padding: 80px 24px; }
     .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
     .empty-title { font-size: 1.1rem; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
     .empty-sub { font-size: 0.85rem; color: var(--dim); }
 
-    /* DOWNLOADING STATE */
     .dl-loading { opacity: 0.6; pointer-events: none; }
 
     @media (max-width: 560px) {
@@ -287,11 +274,12 @@
 <audio id="global-audio" style="display:none"></audio>
 
 <script>
-  const BASE = window.location.origin;
+  // Use the current host for API calls (works when served from same server)
+  const API_BASE = window.location.origin;
   let currentFormat = 'audio';
   let currentTab = 'search';
-  let currentAudio = null;
-  let currentPlayBtn = null;
+  let activePreview = null;
+  const audio = document.getElementById('global-audio');
 
   function setFormat(fmt, btn) {
     currentFormat = fmt;
@@ -311,7 +299,9 @@
     document.getElementById('search-input').focus();
   }
 
-  function isUrl(str) { return str.startsWith('http://') || str.startsWith('https://'); }
+  function isUrl(str) { 
+    return str.startsWith('http://') || str.startsWith('https://'); 
+  }
 
   function formatDur(sec) {
     if (!sec) return '—';
@@ -329,7 +319,8 @@
     const q = document.getElementById('search-input').value.trim();
     if (!q) return;
     const btn = document.getElementById('search-btn');
-    btn.disabled = true; btn.textContent = '...';
+    btn.disabled = true; 
+    btn.textContent = '...';
     document.getElementById('results').innerHTML = `<div class="loader"><div class="spin"></div> Searching...</div>`;
 
     try {
@@ -341,49 +332,54 @@
     } catch(e) {
       document.getElementById('results').innerHTML = `<div class="error-box">❌ ${e.message}</div>`;
     }
-    btn.disabled = false; btn.textContent = 'Search';
+    btn.disabled = false; 
+    btn.textContent = 'Search';
   }
 
   async function loadSearch(q) {
     const endpoint = currentFormat === 'audio' ? '/downloader/youtubemp3' : '/downloader/youtubemp4';
-    const res = await fetch(`${BASE}${endpoint}?q=${encodeURIComponent(q)}&limit=6`);
+    const res = await fetch(`${API_BASE}${endpoint}?q=${encodeURIComponent(q)}&limit=6`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Search failed');
-    if (!data.length) { document.getElementById('results').innerHTML = `<div class="error-box">No results found.</div>`; return; }
+    if (!data.length) { 
+      document.getElementById('results').innerHTML = `<div class="error-box">No results found.</div>`; 
+      return; 
+    }
     renderResults(data, q);
   }
 
   async function loadFromUrl(url) {
     const type = currentFormat === 'audio' ? 'mp3' : 'mp4';
-    const res = await fetch(`${BASE}/download/youtube?q=${encodeURIComponent(url)}&type=${type}`);
+    const res = await fetch(`${API_BASE}/download/youtube?q=${encodeURIComponent(url)}&type=${type}`);
     const data = await res.json();
     if (!res.ok || !data.status) throw new Error(data.message || 'Failed to load URL');
-    renderResults([{
+    
+    // Format the single result to match the search result structure
+    const result = [{
       id: data.result.id,
       title: data.result.title,
       uploader: data.result.author,
       duration: data.result.duration,
       thumbnail: data.result.thumbnail,
       url: url,
+      stream_url: data.result.stream_url,
       download_url: data.result.download_url,
-      stream_url: `${BASE}/api/stream-url?url=${encodeURIComponent(url)}&format=audio`,
-    }], url);
+    }];
+    renderResults(result, url);
   }
 
   function renderResults(items, query) {
     const el = document.getElementById('results');
-    el.innerHTML = `<div class="results-title">${items.length} result${items.length !== 1 ? 's' : ''} for "${query}"</div>`;
+    el.innerHTML = `<div class="results-title">${items.length} result${items.length !== 1 ? 's' : ''} for "${escapeHtml(query)}"</div>`;
+    
     items.forEach((item, i) => {
       const card = document.createElement('div');
       card.className = 'track-card';
       card.style.animationDelay = `${i * 0.06}s`;
       card.id = `card-${i}`;
 
-      const dlUrl = item.download_url || `${BASE}/api/download?url=${encodeURIComponent(item.url)}&format=${currentFormat === 'audio' ? 'audio' : 'video'}`;
-      const streamApiUrl = item.stream_url || `${BASE}/api/stream-url?url=${encodeURIComponent(item.url)}&format=audio`;
-      const videoUrl = item.url;
-      const ext = currentFormat === 'audio' ? 'm4a' : 'mp4';
-
+      const ext = currentFormat === 'audio' ? 'mp3' : 'mp4';
+      
       card.innerHTML = `
         <div class="track-top">
           <div class="track-thumb-wrap">
@@ -391,23 +387,23 @@
               ? `<img class="track-thumb" src="${item.thumbnail}" alt="" onerror="this.parentElement.innerHTML='<div class=thumb-ph>🎵</div>'">`
               : `<div class="thumb-ph">🎵</div>`}
             ${currentFormat === 'audio' ? `
-            <div class="play-overlay" onclick="togglePreview(${i}, '${encodeURIComponent(streamApiUrl)}', '${encodeURIComponent(item.title)}')">
+            <div class="play-overlay" onclick="togglePreview(${i}, '${escapeHtml(item.stream_url)}', '${escapeHtml(item.title)}')">
               <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
             </div>` : ''}
           </div>
           <div class="track-info">
-            <div class="track-title">${item.title}</div>
-            <div class="track-author">${item.uploader || ''}</div>
+            <div class="track-title">${escapeHtml(item.title)}</div>
+            <div class="track-author">${escapeHtml(item.uploader || '')}</div>
             <div class="track-actions">
               ${currentFormat === 'audio' ? `
-              <button class="act-btn preview" id="previewbtn-${i}" onclick="togglePreview(${i}, '${encodeURIComponent(streamApiUrl)}', '${encodeURIComponent(item.title)}')">
+              <button class="act-btn preview" id="previewbtn-${i}" onclick="togglePreview(${i}, '${escapeHtml(item.stream_url)}', '${escapeHtml(item.title)}')">
                 ▶ Preview
               </button>` : ''}
-              <button class="act-btn ${currentFormat === 'audio' ? 'dl-audio' : 'dl-video'}" id="dlbtn-${i}" onclick="downloadTrack(${i}, '${encodeURIComponent(dlUrl)}', '${encodeURIComponent(item.title)}.${ext}')">
+              <button class="act-btn ${currentFormat === 'audio' ? 'dl-audio' : 'dl-video'}" id="dlbtn-${i}" onclick="downloadTrack(${i}, '${escapeHtml(item.download_url)}', '${escapeHtml(item.title)}.${ext}')">
                 ⬇ ${currentFormat === 'audio' ? 'MP3' : 'MP4'}
               </button>
               ${currentFormat === 'audio' ? `
-              <button class="act-btn dl-video" onclick="downloadVideo(${i}, '${encodeURIComponent(videoUrl)}', '${encodeURIComponent(item.title)}')">
+              <button class="act-btn dl-video" onclick="downloadVideo(${i}, '${escapeHtml(item.url)}', '${escapeHtml(item.title)}')">
                 ⬇ MP4
               </button>` : ''}
             </div>
@@ -417,7 +413,7 @@
         <div class="player-bar" id="player-${i}">
           <div class="player-top">
             <span style="font-size:0.8rem">🎵</span>
-            <span class="player-title" id="ptitle-${i}">${item.title}</span>
+            <span class="player-title" id="ptitle-${i}">${escapeHtml(item.title)}</span>
             <span class="player-time" id="ptime-${i}">0:00 / ${formatDur(item.duration)}</span>
           </div>
           <div class="player-controls">
@@ -433,36 +429,50 @@
     });
   }
 
-  // AUDIO PREVIEW
-  const audio = document.getElementById('global-audio');
-  let activePreview = null;
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+      return c;
+    });
+  }
 
-  async function togglePreview(i, encodedStreamUrl, encodedTitle) {
-    const streamUrl = decodeURIComponent(encodedStreamUrl);
-
+  async function togglePreview(i, streamUrl, title) {
     if (activePreview === i) {
-      if (audio.paused) { audio.play(); updatePlayBtn(i, false); }
-      else { audio.pause(); updatePlayBtn(i, true); }
+      if (audio.paused) { 
+        audio.play(); 
+        updatePlayBtn(i, false);
+      } else { 
+        audio.pause(); 
+        updatePlayBtn(i, true);
+      }
       return;
     }
 
     if (activePreview !== null) stopPreview(activePreview);
-
     activePreview = i;
+    
     const btn = document.getElementById(`previewbtn-${i}`);
     const bar = document.getElementById(`player-${i}`);
-    if (btn) { btn.textContent = '⏳ Loading...'; btn.classList.add('playing'); }
+    if (btn) { 
+      btn.textContent = '⏳ Loading...'; 
+      btn.classList.add('playing'); 
+    }
 
     try {
-      audio.src = streamUrl; // /api/stream endpoint pipes directly
+      audio.src = streamUrl;
       audio.load();
-
+      
       await new Promise((resolve, reject) => {
-        audio.oncanplay = resolve;
+        audio.oncanplaythrough = resolve;
         audio.onerror = reject;
-        setTimeout(reject, 15000); // 15s timeout
+        setTimeout(() => reject(new Error('Timeout loading stream')), 15000);
       });
-
+      
       await audio.play();
       bar.classList.add('visible');
       if (btn) btn.textContent = '⏸ Pause';
@@ -471,21 +481,32 @@
         const prog = document.getElementById(`prog-${i}`);
         const time = document.getElementById(`ptime-${i}`);
         if (prog && audio.duration) prog.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
-        if (time) time.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+        if (time && audio.duration) time.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
       };
       audio.onended = () => stopPreview(i);
       audio.onerror = () => stopPreview(i);
-
+      
     } catch(e) {
-      if (btn) { btn.textContent = '❌ Failed'; btn.classList.remove('playing'); }
-      setTimeout(() => { if (btn) btn.textContent = '▶ Preview'; }, 2000);
+      console.error('Preview error:', e);
+      if (btn) { 
+        btn.textContent = '❌ Failed'; 
+        btn.classList.remove('playing');
+        setTimeout(() => { 
+          if (btn) btn.textContent = '▶ Preview'; 
+        }, 2000);
+      }
       activePreview = null;
     }
   }
 
   function toggleAudioPause(i) {
-    if (audio.paused) { audio.play(); document.getElementById(`ppause-${i}`).textContent = '⏸'; }
-    else { audio.pause(); document.getElementById(`ppause-${i}`).textContent = '▶'; }
+    if (audio.paused) { 
+      audio.play(); 
+      document.getElementById(`ppause-${i}`).textContent = '⏸';
+    } else { 
+      audio.pause(); 
+      document.getElementById(`ppause-${i}`).textContent = '▶';
+    }
   }
 
   function updatePlayBtn(i, paused) {
@@ -496,14 +517,18 @@
   }
 
   function stopPreview(i) {
-    audio.pause(); audio.src = '';
+    audio.pause();
+    audio.src = '';
     const btn = document.getElementById(`previewbtn-${i}`);
     const bar = document.getElementById(`player-${i}`);
     const prog = document.getElementById(`prog-${i}`);
-    if (btn) { btn.textContent = '▶ Preview'; btn.classList.remove('playing'); }
+    if (btn) { 
+      btn.textContent = '▶ Preview'; 
+      btn.classList.remove('playing'); 
+    }
     if (bar) bar.classList.remove('visible');
     if (prog) prog.style.width = '0%';
-    activePreview = null;
+    if (activePreview === i) activePreview = null;
   }
 
   function seekAudio(e, i) {
@@ -513,46 +538,73 @@
     if (audio.duration) audio.currentTime = pct * audio.duration;
   }
 
-  // DOWNLOAD
-  async function downloadTrack(i, encodedUrl, encodedName) {
-    const url = decodeURIComponent(encodedUrl);
-    const name = decodeURIComponent(encodedName);
+  async function downloadTrack(i, downloadUrl, fileName) {
     const btn = document.getElementById(`dlbtn-${i}`);
+    const originalText = btn.textContent;
     btn.textContent = '⏳ Downloading...';
     btn.classList.add('dl-loading');
 
     try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
-      const blob = await res.blob();
+      const response = await fetch(downloadUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = name;
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(a.href);
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
       btn.textContent = '✅ Done!';
       setTimeout(() => {
-        btn.textContent = currentFormat === 'audio' ? '⬇ MP3' : '⬇ MP4';
+        btn.textContent = originalText;
         btn.classList.remove('dl-loading');
       }, 3000);
     } catch(e) {
+      console.error('Download error:', e);
       btn.textContent = '❌ Failed';
-      btn.classList.remove('dl-loading');
-      setTimeout(() => { btn.textContent = currentFormat === 'audio' ? '⬇ MP3' : '⬇ MP4'; }, 3000);
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.classList.remove('dl-loading');
+      }, 3000);
     }
   }
 
-  async function downloadVideo(i, encodedUrl, encodedTitle) {
-    const url = decodeURIComponent(encodedUrl);
-    const title = decodeURIComponent(encodedTitle);
-    const dlUrl = `${BASE}/api/download?url=${encodeURIComponent(url)}&format=video`;
-    await downloadTrack(i, encodeURIComponent(dlUrl), encodeURIComponent(title + '.mp4'));
+  async function downloadVideo(i, videoUrl, title) {
+    const dlUrl = `${API_BASE}/api/download?url=${encodeURIComponent(videoUrl)}&format=video`;
+    await downloadTrack(i, dlUrl, `${title}.mp4`);
   }
 
-  // Enter key
+  // Enter key handler
   document.getElementById('search-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') handleSearch();
   });
+
+  // Test connection on load
+  async function testConnection() {
+    try {
+      const res = await fetch(`${API_BASE}/api/health`);
+      if (res.ok) {
+        console.log('✅ Connected to backend');
+      } else {
+        console.warn('⚠️ Backend not responding properly');
+      }
+    } catch(e) {
+      console.error('❌ Cannot connect to backend. Make sure server is running on port 3000');
+      document.getElementById('results').innerHTML = `
+        <div class="error-box">
+          ⚠️ Cannot connect to backend server. Make sure to:<br>
+          1. Run: node server.js<br>
+          2. Access via http://localhost:3000 instead of opening file directly
+        </div>
+      `;
+    }
+  }
+  
+  testConnection();
 </script>
 </body>
 </html>
