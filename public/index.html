@@ -1,437 +1,558 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>DrexMusic API</title>
+  <title>DrexMusic — Download Music & Videos</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f0f0f; --surface: #1a1a1a; --surface2: #222;
-      --border: #2e2e2e; --border2: #3a3a3a;
-      --accent: #00d4aa; --accent2: #ff6b6b; --blue: #4a90d9;
-      --text: #e8e8e8; --muted: #888; --dim: #555; --radius: 10px;
+      --bg: #080810;
+      --surface: #10101e;
+      --card: #13132000;
+      --border: rgba(255,255,255,0.07);
+      --border2: rgba(255,255,255,0.12);
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --teal: #00d4aa;
+      --text: #f0f0ff;
+      --muted: #8888aa;
+      --dim: #44445a;
+      --radius: 16px;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* BG GRADIENT */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(108,99,255,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(255,101,132,0.1) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* NAV */
     nav {
+      position: sticky; top: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 24px; height: 52px; border-bottom: 1px solid var(--border);
-      background: var(--surface); position: sticky; top: 0; z-index: 100;
+      padding: 0 32px; height: 60px;
+      background: rgba(8,8,16,0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
     }
-    .logo { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 1rem; color: var(--accent); cursor: pointer; }
-    .logo span { color: var(--text); }
-    .nav-links { display: flex; gap: 4px; }
-    .nav-link {
-      padding: 6px 14px; border-radius: 6px; font-size: 0.82rem; font-weight: 500;
-      color: var(--muted); transition: all 0.15s; cursor: pointer;
-      border: 1px solid transparent; background: none;
+    .logo {
+      font-size: 1.3rem; font-weight: 800; letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #6c63ff, #ff6584);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
-    .nav-link:hover { color: var(--text); background: var(--surface2); }
-    .nav-link.active { color: var(--accent); background: rgba(0,212,170,0.08); border-color: rgba(0,212,170,0.2); }
+    .nav-tabs { display: flex; gap: 4px; }
+    .nav-tab {
+      padding: 7px 18px; border-radius: 100px; font-size: 0.85rem; font-weight: 500;
+      border: 1px solid transparent; background: none; color: var(--muted);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .nav-tab:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .nav-tab.active { color: var(--text); background: rgba(108,99,255,0.15); border-color: rgba(108,99,255,0.3); }
 
-    .layout { display: flex; min-height: calc(100vh - 52px); }
+    /* HERO */
+    .hero {
+      position: relative; z-index: 1;
+      text-align: center; padding: 72px 24px 48px;
+      animation: fadeUp 0.6s ease both;
+    }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
 
-    .sidebar {
-      width: 240px; flex-shrink: 0; border-right: 1px solid var(--border);
-      background: var(--surface); padding: 20px 0; position: sticky;
-      top: 52px; height: calc(100vh - 52px); overflow-y: auto;
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(108,99,255,0.1); border: 1px solid rgba(108,99,255,0.25);
+      padding: 5px 16px; border-radius: 100px; font-size: 0.78rem; color: #a09cff;
+      font-weight: 500; margin-bottom: 20px; letter-spacing: 0.05em;
     }
-    .sidebar-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); padding: 0 16px; margin-bottom: 6px; margin-top: 16px; }
-    .sidebar-label:first-child { margin-top: 0; }
-    .sidebar-item {
-      display: flex; align-items: center; gap: 10px; padding: 9px 16px;
-      cursor: pointer; transition: all 0.15s; color: var(--muted); font-size: 0.83rem;
-      border-left: 2px solid transparent;
-    }
-    .sidebar-item:hover { background: var(--surface2); color: var(--text); }
-    .sidebar-item.active { background: rgba(0,212,170,0.06); color: var(--accent); border-left-color: var(--accent); }
-    .sm { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
-    .sm-green { background: rgba(0,212,170,0.15); color: var(--accent); }
-    .sm-blue { background: rgba(74,144,217,0.15); color: var(--blue); }
+    .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
 
-    .main { flex: 1; padding: 32px; max-width: 820px; }
-    .page { display: none; animation: fadeIn 0.2s ease; }
-    .page.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .hero h1 {
+      font-size: clamp(2.4rem, 7vw, 4.5rem);
+      font-weight: 900; letter-spacing: -0.04em; line-height: 1.05;
+      margin-bottom: 16px;
+    }
+    .hero h1 .grad {
+      background: linear-gradient(135deg, #6c63ff 0%, #ff6584 50%, #00d4aa 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p { color: var(--muted); font-size: 1.05rem; font-weight: 300; max-width: 440px; margin: 0 auto 40px; line-height: 1.6; }
 
-    .ep-header { margin-bottom: 28px; }
-    .ep-badge {
-      display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px;
-      background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
-      padding: 6px 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
+    /* FORMAT TOGGLE */
+    .format-toggle {
+      display: inline-flex; gap: 0; background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border); border-radius: 100px; padding: 4px;
+      margin-bottom: 20px;
     }
-    .ep-get { color: var(--accent); font-weight: 700; }
-    .ep-get-blue { color: var(--blue); font-weight: 700; }
-    .ep-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; }
-    .ep-desc { color: var(--muted); font-size: 0.88rem; line-height: 1.5; }
+    .fmt-btn {
+      padding: 8px 24px; border-radius: 100px; border: none; background: transparent;
+      font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.88rem;
+      color: var(--muted); cursor: pointer; transition: all 0.2s;
+    }
+    .fmt-btn.active { background: var(--accent); color: #fff; }
+    .fmt-btn:not(.active):hover { color: var(--text); }
 
-    .section { margin-bottom: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-    .sec-head {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 11px 16px; border-bottom: 1px solid var(--border);
+    /* SEARCH */
+    .search-wrap {
+      max-width: 620px; margin: 0 auto;
+      animation: fadeUp 0.6s 0.1s ease both;
     }
-    .sec-label { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-    .sec-body { padding: 16px; }
-    .sec-body.collapsed { display: none; }
+    .search-box {
+      display: flex; gap: 0;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border2);
+      border-radius: 14px; padding: 6px 6px 6px 20px;
+      backdrop-filter: blur(10px);
+      transition: border-color 0.2s;
+    }
+    .search-box:focus-within { border-color: rgba(108,99,255,0.5); }
+    .search-box input {
+      flex: 1; background: transparent; border: none; outline: none;
+      font-family: 'Outfit', sans-serif; font-size: 1rem; color: var(--text);
+    }
+    .search-box input::placeholder { color: var(--dim); }
+    .search-go {
+      background: var(--accent); color: #fff; border: none; border-radius: 10px;
+      padding: 12px 28px; font-family: 'Outfit', sans-serif; font-weight: 700;
+      font-size: 0.9rem; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    }
+    .search-go:hover { background: #5a52ee; transform: translateY(-1px); }
+    .search-go:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-    .param-row { margin-bottom: 14px; }
-    .param-label { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 0.82rem; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
-    .req { color: var(--accent2); }
-    .opt { color: var(--dim); font-size: 0.72rem; font-family: 'Inter', sans-serif; font-weight: 400; }
-    .param-hint { font-size: 0.74rem; color: var(--dim); margin-top: 4px; }
-    .param-input, .param-select {
-      width: 100%; background: var(--bg); border: 1px solid var(--border2); border-radius: 6px;
-      padding: 9px 12px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.88rem; outline: none;
-    }
-    .param-input:focus, .param-select:focus { border-color: var(--accent); }
-    .param-select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+    /* MAIN */
+    .main { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; padding: 0 24px 80px; }
 
-    .exec-row { display: flex; gap: 10px; margin-top: 4px; }
-    .exec-btn {
-      padding: 10px 24px; background: var(--accent); color: #000; border: none;
-      border-radius: 6px; font-weight: 700; font-size: 0.88rem; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s;
+    /* RESULTS */
+    #results { margin-top: 40px; }
+    .results-title {
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--dim); margin-bottom: 16px;
     }
-    .exec-btn:hover { background: #00bfa0; }
-    .exec-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .exec-btn.blue { background: var(--blue); color: #fff; }
-    .exec-btn.blue:hover { background: #3a7bc4; }
-    .clear-btn {
-      padding: 10px 20px; background: transparent; color: var(--muted);
-      border: 1px solid var(--border2); border-radius: 6px; font-size: 0.88rem; cursor: pointer; font-family: 'Inter', sans-serif;
-    }
-    .clear-btn:hover { color: var(--text); border-color: var(--text); }
 
-    .out-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 16px; background: var(--surface2); border-bottom: 1px solid var(--border);
+    .track-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 12px;
+      animation: fadeUp 0.3s ease both;
+      transition: border-color 0.2s, background 0.2s;
     }
-    .out-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
-    .copy-btn {
-      background: none; border: 1px solid var(--border); border-radius: 5px;
-      padding: 4px 10px; color: var(--muted); cursor: pointer; font-size: 0.74rem; transition: all 0.15s;
+    .track-card:hover { border-color: var(--border2); background: rgba(255,255,255,0.05); }
+
+    .track-top { display: flex; gap: 14px; padding: 16px; align-items: center; }
+    .track-thumb-wrap { position: relative; flex-shrink: 0; width: 72px; height: 72px; }
+    .track-thumb {
+      width: 72px; height: 72px; border-radius: 10px;
+      object-fit: cover; background: var(--surface); display: block;
     }
-    .copy-btn:hover { color: var(--text); border-color: var(--border2); }
-    .copy-btn.copied { color: var(--accent); border-color: var(--accent); }
-    .out-content { padding: 13px 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: #ccc; line-height: 1.6; word-break: break-all; white-space: pre-wrap; }
-    .out-content.url { color: var(--accent); cursor: pointer; }
-    .out-content.url:hover { text-decoration: underline; }
-    .json-out { padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.7; max-height: 500px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
-    .jk { color: #7ec8e3; } .js { color: #a8e6cf; } .jn { color: #ffd700; } .jb { color: #ff9f7f; } .jnu { color: var(--dim); }
-    .badge-ok { background: rgba(0,212,170,0.15); color: var(--accent); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
-    .badge-err { background: rgba(255,107,107,0.15); color: var(--accent2); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
-    .spinner { width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
+    .thumb-ph { width: 72px; height: 72px; border-radius: 10px; background: rgba(108,99,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; flex-shrink: 0; }
+
+    /* PLAY BUTTON OVERLAY */
+    .play-overlay {
+      position: absolute; inset: 0; border-radius: 10px;
+      background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.2s; cursor: pointer;
+    }
+    .track-thumb-wrap:hover .play-overlay { opacity: 1; }
+    .play-icon { width: 28px; height: 28px; fill: #fff; }
+
+    .track-info { flex: 1; min-width: 0; }
+    .track-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track-author { font-size: 0.82rem; color: var(--muted); margin-bottom: 10px; }
+    .track-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    .duration-pill {
+      background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+      padding: 3px 10px; border-radius: 100px; font-size: 0.72rem;
+      color: var(--muted); font-family: 'JetBrains Mono', monospace;
+      margin-left: auto; align-self: flex-start; flex-shrink: 0;
+    }
+
+    /* ACTION BUTTONS */
+    .act-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; cursor: pointer; font-family: 'Outfit', sans-serif;
+      font-size: 0.8rem; font-weight: 600; color: var(--muted); transition: all 0.2s;
+      text-decoration: none;
+    }
+    .act-btn:hover { border-color: var(--border2); color: var(--text); background: rgba(255,255,255,0.05); }
+    .act-btn.preview { border-color: rgba(108,99,255,0.3); color: #a09cff; }
+    .act-btn.preview:hover { background: rgba(108,99,255,0.12); }
+    .act-btn.preview.playing { background: rgba(108,99,255,0.15); border-color: var(--accent); color: var(--accent); }
+    .act-btn.dl-audio { border-color: rgba(0,212,170,0.3); color: var(--teal); }
+    .act-btn.dl-audio:hover { background: rgba(0,212,170,0.1); }
+    .act-btn.dl-video { border-color: rgba(255,101,132,0.3); color: var(--accent2); }
+    .act-btn.dl-video:hover { background: rgba(255,101,132,0.1); }
+
+    /* AUDIO PLAYER BAR */
+    .player-bar {
+      margin: 0 16px 16px;
+      background: rgba(108,99,255,0.08); border: 1px solid rgba(108,99,255,0.2);
+      border-radius: 10px; padding: 12px 14px;
+      display: none;
+    }
+    .player-bar.visible { display: block; animation: fadeUp 0.2s ease; }
+    .player-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .player-title { font-size: 0.82rem; font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #c0bcff; }
+    .player-time { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+    .player-controls { display: flex; align-items: center; gap: 10px; }
+    .p-btn { background: none; border: none; cursor: pointer; color: #a09cff; font-size: 1rem; padding: 4px; transition: color 0.15s; }
+    .p-btn:hover { color: var(--text); }
+    .progress-wrap { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; cursor: pointer; position: relative; }
+    .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; width: 0%; transition: width 0.1s linear; pointer-events: none; }
+
+    /* LOADER */
+    .loader { display: flex; align-items: center; justify-content: center; padding: 60px; gap: 12px; color: var(--muted); font-size: 0.9rem; }
+    .spin { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.65s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* HOME */
-    .home-hero h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
-    .home-hero h1 span { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
-    .home-hero p { color: var(--muted); line-height: 1.6; max-width: 500px; margin-bottom: 24px; }
-    .base-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-    .base-label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); white-space: nowrap; }
-    .base-val { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--accent); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .ep-list { display: flex; flex-direction: column; gap: 8px; }
-    .ep-row {
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 13px 18px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: all 0.15s;
-    }
-    .ep-row:hover { border-color: var(--border2); background: var(--surface2); }
-    .ep-m { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
-    .ep-path { font-family: 'JetBrains Mono', monospace; font-size: 0.83rem; flex: 1; }
-    .ep-d { font-size: 0.78rem; color: var(--muted); }
+    .error-box { background: rgba(255,101,132,0.08); border: 1px solid rgba(255,101,132,0.2); border-radius: 12px; padding: 16px 20px; color: #ff8fa3; font-size: 0.9rem; }
 
-    @media (max-width: 640px) { .sidebar { display: none; } .main { padding: 20px 16px; } }
+    /* EMPTY STATE */
+    .empty-state { text-align: center; padding: 80px 24px; }
+    .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
+    .empty-title { font-size: 1.1rem; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+    .empty-sub { font-size: 0.85rem; color: var(--dim); }
+
+    /* DOWNLOADING STATE */
+    .dl-loading { opacity: 0.6; pointer-events: none; }
+
+    @media (max-width: 560px) {
+      nav { padding: 0 16px; }
+      .hero { padding: 48px 16px 32px; }
+      .main { padding: 0 16px 60px; }
+      .track-actions { gap: 6px; }
+      .act-btn { padding: 6px 10px; font-size: 0.75rem; }
+    }
   </style>
 </head>
 <body>
 
 <nav>
-  <div class="logo" onclick="showPage('home')">drex<span>music</span></div>
-  <div class="nav-links">
-    <button class="nav-link active" id="nav-home" onclick="showPage('home')">Home</button>
-    <button class="nav-link" id="nav-mp3" onclick="showPage('mp3')">MP3</button>
-    <button class="nav-link" id="nav-mp4" onclick="showPage('mp4')">MP4</button>
-    <button class="nav-link" id="nav-yt" onclick="showPage('yt')">YouTube</button>
+  <div class="logo">DrexMusic</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="setTab('search', this)">🔍 Search</button>
+    <button class="nav-tab" onclick="setTab('url', this)">🔗 URL</button>
   </div>
 </nav>
 
-<div class="layout">
-  <div class="sidebar">
-    <div class="sidebar-label">Downloader</div>
-    <div class="sidebar-item active" id="side-home" onclick="showPage('home')">🏠 Overview</div>
-    <div class="sidebar-item" id="side-mp3" onclick="showPage('mp3')"><span class="sm sm-green">GET</span> /youtubemp3</div>
-    <div class="sidebar-item" id="side-mp4" onclick="showPage('mp4')"><span class="sm sm-blue">GET</span> /youtubemp4</div>
-    <div class="sidebar-item" id="side-yt" onclick="showPage('yt')"><span class="sm sm-green">GET</span> /download/youtube</div>
-    <div class="sidebar-label">Utilities</div>
-    <div class="sidebar-item" onclick="showPage('mp3')"><span class="sm sm-green">GET</span> /api/search</div>
-    <div class="sidebar-item" onclick="showPage('mp3')"><span class="sm sm-green">GET</span> /api/stream-url</div>
-    <div class="sidebar-item" onclick="showPage('mp3')"><span class="sm sm-green">GET</span> /api/download</div>
+<div class="hero">
+  <div class="hero-eyebrow"><span class="pulse"></span> YouTube Downloader</div>
+  <h1>Music & Videos<br><span class="grad">Free Downloads</span></h1>
+  <p>Search any song or video, preview it right here, then download as MP3 or MP4.</p>
+
+  <div class="format-toggle">
+    <button class="fmt-btn active" id="fmt-audio" onclick="setFormat('audio', this)">🎵 Audio</button>
+    <button class="fmt-btn" id="fmt-video" onclick="setFormat('video', this)">🎬 Video</button>
   </div>
 
-  <div class="main">
-
-    <!-- HOME -->
-    <div class="page active" id="page-home">
-      <div class="home-hero">
-        <h1>DrexMusic <span>API</span></h1>
-        <p>YouTube music & video downloader API. Search by name or URL — get JSON metadata + direct download links.</p>
-      </div>
-      <div class="base-box">
-        <span class="base-label">Base URL</span>
-        <span class="base-val" id="base-val">loading...</span>
-        <button class="copy-btn" onclick="copyText(this, document.getElementById('base-val').textContent)">📋 Copy</button>
-      </div>
-      <div class="ep-list">
-        <div class="ep-row" onclick="showPage('mp3')">
-          <span class="ep-m sm-green">GET</span>
-          <span class="ep-path">/downloader/youtubemp3</span>
-          <span class="ep-d">Search + MP3 link</span>
-          <span style="color:var(--dim)">→</span>
-        </div>
-        <div class="ep-row" onclick="showPage('mp4')">
-          <span class="ep-m sm-blue">GET</span>
-          <span class="ep-path">/downloader/youtubemp4</span>
-          <span class="ep-d">Search + MP4 link</span>
-          <span style="color:var(--dim)">→</span>
-        </div>
-        <div class="ep-row" onclick="showPage('yt')">
-          <span class="ep-m sm-green">GET</span>
-          <span class="ep-path">/download/youtube</span>
-          <span class="ep-d">Full info + direct URL</span>
-          <span style="color:var(--dim)">→</span>
-        </div>
-        <div class="ep-row" onclick="showPage('mp3')">
-          <span class="ep-m sm-green">GET</span>
-          <span class="ep-path">/api/stream-url</span>
-          <span class="ep-d">Raw CDN stream URL</span>
-          <span style="color:var(--dim)">→</span>
-        </div>
-      </div>
+  <div class="search-wrap">
+    <div class="search-box" id="search-box">
+      <input type="text" id="search-input" placeholder="Search song, artist, or paste YouTube URL..." />
+      <button class="search-go" id="search-btn" onclick="handleSearch()">Search</button>
     </div>
-
-    <!-- MP3 PAGE -->
-    <div class="page" id="page-mp3">
-      <div class="ep-header">
-        <div class="ep-badge"><span class="ep-get">GET</span> /downloader/youtubemp3</div>
-        <div class="ep-title">YouTube Downloader — MP3</div>
-        <div class="ep-desc">Search by song name or paste a YouTube URL. Returns JSON array with metadata + MP3 download URL.</div>
-      </div>
-      <div class="section">
-        <div class="sec-head"><div class="sec-label">≡ Parameters</div></div>
-        <div class="sec-body">
-          <div class="param-row">
-            <div class="param-label">q <span class="req">*</span></div>
-            <input class="param-input" id="mp3-q" placeholder="e.g. Faded Alan Walker" />
-            <div class="param-hint">Song name or YouTube URL</div>
-          </div>
-          <div class="param-row">
-            <div class="param-label">limit <span class="opt">(optional)</span></div>
-            <input class="param-input" id="mp3-limit" placeholder="5" type="number" min="1" max="10" />
-            <div class="param-hint">Number of results (default: 5)</div>
-          </div>
-          <div class="exec-row">
-            <button class="exec-btn" id="mp3-btn" onclick="execute('mp3')">▶ Execute</button>
-            <button class="clear-btn" onclick="clearPage('mp3')">Clear</button>
-          </div>
-        </div>
-      </div>
-      <div id="mp3-req-sec" style="display:none" class="section">
-        <div class="out-row"><div class="out-label">🔗 Request URL</div><button class="copy-btn" id="mp3-req-cb" onclick="copyEl(this,'mp3-req-txt')">📋 Copy</button></div>
-        <div class="out-content url" id="mp3-req-txt" onclick="copyEl(document.getElementById('mp3-req-cb'),'mp3-req-txt')"></div>
-      </div>
-      <div id="mp3-curl-sec" style="display:none" class="section">
-        <div class="out-row"><div class="out-label">⬛ Curl Command</div><button class="copy-btn" id="mp3-curl-cb" onclick="copyEl(this,'mp3-curl-txt')">📋 Copy</button></div>
-        <div class="out-content" id="mp3-curl-txt"></div>
-      </div>
-      <div id="mp3-res-sec" style="display:none" class="section">
-        <div class="out-row"><div class="out-label">◇ Response <span id="mp3-status"></span></div><button class="copy-btn" id="mp3-res-cb" onclick="copyEl(this,'mp3-res-txt')">📋 Copy</button></div>
-        <div class="json-out" id="mp3-res-txt"></div>
-      </div>
-    </div>
-
-    <!-- MP4 PAGE -->
-    <div class="page" id="page-mp4">
-      <div class="ep-header">
-        <div class="ep-badge"><span class="ep-get-blue">GET</span> /downloader/youtubemp4</div>
-        <div class="ep-title">YouTube Downloader — MP4</div>
-        <div class="ep-desc">Search by video name or paste a YouTube URL. Returns JSON array with metadata + MP4 download URL.</div>
-      </div>
-      <div class="section">
-        <div class="sec-head"><div class="sec-label">≡ Parameters</div></div>
-        <div class="sec-body">
-          <div class="param-row">
-            <div class="param-label">q <span class="req">*</span></div>
-            <input class="param-input" id="mp4-q" placeholder="e.g. Faded Alan Walker" />
-            <div class="param-hint">Video name or YouTube URL</div>
-          </div>
-          <div class="param-row">
-            <div class="param-label">limit <span class="opt">(optional)</span></div>
-            <input class="param-input" id="mp4-limit" placeholder="5" type="number" min="1" max="10" />
-            <div class="param-hint">Number of results (default: 5)</div>
-          </div>
-          <div class="exec-row">
-            <button class="exec-btn blue" id="mp4-btn" onclick="execute('mp4')">▶ Execute</button>
-            <button class="clear-btn" onclick="clearPage('mp4')">Clear</button>
-          </div>
-        </div>
-      </div>
-      <div id="mp4-req-sec" style="display:none" class="section">
-        <div class="out-row"><div class="out-label">🔗 Request URL</div><button class="copy-btn" id="mp4-req-cb" onclick="copyEl(this,'mp4-req-txt')">📋 Copy</button></div>
-        <div class="out-content url" id="mp4-req-txt" onclick="copyEl(document.getElementById('mp4-req-cb'),'mp4-req-txt')"></div>
-      </div>
-      <div id="mp4-curl-sec" style="display:none" class="section">
-        <div class="out-row"><div class="out-label">⬛ Curl Command</div><button class="copy-btn" id="mp4-curl-cb" onclick="copyEl(this,'mp4-curl-txt')">📋 Copy</button></div>
-        <div class="out-content" id="mp4-curl-txt"></div>
-      </div>
-      <div id="mp4-res-sec" style="display:none" class="section">
-        <div class="out-row"><div class="out-label">◇ Response <span id="mp4-status"></span></div><button class="copy-btn" id="mp4-res-cb" onclick="copyEl(this,'mp4-res-txt')">📋 Copy</button></div>
-        <div class="json-out" id="mp4-res-txt"></div>
-      </div>
-    </div>
-
-    <!-- /download/youtube PAGE -->
-    <div class="page" id="page-yt">
-      <div class="ep-header">
-        <div class="ep-badge"><span class="ep-get">GET</span> /download/youtube</div>
-        <div class="ep-title">YouTube — Full Info + Direct URL</div>
-        <div class="ep-desc">Search by name or URL. Returns a single result with full metadata, direct CDN stream URL, and download URL.</div>
-      </div>
-      <div class="section">
-        <div class="sec-head"><div class="sec-label">≡ Parameters</div></div>
-        <div class="sec-body">
-          <div class="param-row">
-            <div class="param-label">q <span class="req">*</span></div>
-            <input class="param-input" id="yt-q" placeholder="e.g. Faded or https://youtu.be/..." />
-            <div class="param-hint">Song/video name or YouTube URL</div>
-          </div>
-          <div class="param-row">
-            <div class="param-label">type <span class="opt">(optional)</span></div>
-            <select class="param-select" id="yt-type">
-              <option value="mp3">mp3 — audio only</option>
-              <option value="mp4">mp4 — video + audio</option>
-            </select>
-          </div>
-          <div class="exec-row">
-            <button class="exec-btn" id="yt-btn" onclick="execute('yt')">▶ Execute</button>
-            <button class="clear-btn" onclick="clearPage('yt')">Clear</button>
-          </div>
-        </div>
-      </div>
-      <div id="yt-req-sec" style="display:none" class="section">
-        <div class="out-row"><div class="out-label">🔗 Request URL</div><button class="copy-btn" id="yt-req-cb" onclick="copyEl(this,'yt-req-txt')">📋 Copy</button></div>
-        <div class="out-content url" id="yt-req-txt" onclick="copyEl(document.getElementById('yt-req-cb'),'yt-req-txt')"></div>
-      </div>
-      <div id="yt-curl-sec" style="display:none" class="section">
-        <div class="out-row"><div class="out-label">⬛ Curl Command</div><button class="copy-btn" id="yt-curl-cb" onclick="copyEl(this,'yt-curl-txt')">📋 Copy</button></div>
-        <div class="out-content" id="yt-curl-txt"></div>
-      </div>
-      <div id="yt-res-sec" style="display:none" class="section">
-        <div class="out-row"><div class="out-label">◇ Response <span id="yt-status"></span></div><button class="copy-btn" id="yt-res-cb" onclick="copyEl(this,'yt-res-txt')">📋 Copy</button></div>
-        <div class="json-out" id="yt-res-txt"></div>
-      </div>
-    </div>
-
   </div>
 </div>
 
+<div class="main">
+  <div id="results">
+    <div class="empty-state">
+      <div class="empty-icon">🎶</div>
+      <div class="empty-title">Search for any song or video</div>
+      <div class="empty-sub">Supports YouTube & YouTube Music</div>
+    </div>
+  </div>
+</div>
+
+<!-- Global audio player -->
+<audio id="global-audio" style="display:none"></audio>
+
 <script>
   const BASE = window.location.origin;
-  document.getElementById('base-val').textContent = BASE;
+  let currentFormat = 'audio';
+  let currentTab = 'search';
+  let currentAudio = null;
+  let currentPlayBtn = null;
 
-  function showPage(id) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-link, .sidebar-item').forEach(l => l.classList.remove('active'));
-    document.getElementById('page-' + id).classList.add('active');
-    if (document.getElementById('nav-' + id)) document.getElementById('nav-' + id).classList.add('active');
-    if (document.getElementById('side-' + id)) document.getElementById('side-' + id).classList.add('active');
-    return false;
+  function setFormat(fmt, btn) {
+    currentFormat = fmt;
+    document.querySelectorAll('.fmt-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('search-input').placeholder =
+      fmt === 'audio' ? 'Search song, artist, or paste YouTube URL...' : 'Search video or paste YouTube URL...';
   }
 
-  function highlight(json) {
-    const s = typeof json === 'string' ? json : JSON.stringify(json, null, 2);
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
-        let c = 'jn';
-        if (/^"/.test(m)) c = /:$/.test(m) ? 'jk' : 'js';
-        else if (/true|false/.test(m)) c = 'jb';
-        else if (/null/.test(m)) c = 'jnu';
-        return `<span class="${c}">${m}</span>`;
-      });
+  function setTab(tab, btn) {
+    currentTab = tab;
+    document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('search-input').placeholder =
+      tab === 'url' ? 'Paste YouTube URL here...' : 'Search song, artist, or paste YouTube URL...';
+    document.getElementById('search-input').value = '';
+    document.getElementById('search-input').focus();
   }
 
-  function getEndpoint(type) {
-    const q = document.getElementById(`${type}-q`).value.trim();
-    const limit = document.getElementById(`${type}-limit`)?.value || '5';
-    const ytType = document.getElementById(`${type}-type`)?.value || 'mp3';
+  function isUrl(str) { return str.startsWith('http://') || str.startsWith('https://'); }
 
-    if (type === 'mp3') return `${BASE}/downloader/youtubemp3?q=${encodeURIComponent(q)}&limit=${limit}`;
-    if (type === 'mp4') return `${BASE}/downloader/youtubemp4?q=${encodeURIComponent(q)}&limit=${limit}`;
-    if (type === 'yt')  return `${BASE}/download/youtube?q=${encodeURIComponent(q)}&type=${ytType}`;
+  function formatDur(sec) {
+    if (!sec) return '—';
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
   }
 
-  async function execute(type) {
-    const q = document.getElementById(`${type}-q`).value.trim();
-    if (!q) { document.getElementById(`${type}-q`).focus(); return; }
+  function formatTime(sec) {
+    if (isNaN(sec)) return '0:00';
+    const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
 
-    const btn = document.getElementById(`${type}-btn`);
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>';
+  async function handleSearch() {
+    const q = document.getElementById('search-input').value.trim();
+    if (!q) return;
+    const btn = document.getElementById('search-btn');
+    btn.disabled = true; btn.textContent = '...';
+    document.getElementById('results').innerHTML = `<div class="loader"><div class="spin"></div> Searching...</div>`;
 
-    const url = getEndpoint(type);
-    const curl = `curl -X GET "${url}"`;
+    try {
+      if (isUrl(q)) {
+        await loadFromUrl(q);
+      } else {
+        await loadSearch(q);
+      }
+    } catch(e) {
+      document.getElementById('results').innerHTML = `<div class="error-box">❌ ${e.message}</div>`;
+    }
+    btn.disabled = false; btn.textContent = 'Search';
+  }
 
-    // Show sections
-    ['req','curl','res'].forEach(s => document.getElementById(`${type}-${s}-sec`).style.display = 'block');
-    document.getElementById(`${type}-req-txt`).textContent = url;
-    document.getElementById(`${type}-curl-txt`).textContent = curl;
-    document.getElementById(`${type}-res-txt`).innerHTML = '<span class="spinner"></span> Fetching...';
-    document.getElementById(`${type}-status`).innerHTML = '';
+  async function loadSearch(q) {
+    const endpoint = currentFormat === 'audio' ? '/downloader/youtubemp3' : '/downloader/youtubemp4';
+    const res = await fetch(`${BASE}${endpoint}?q=${encodeURIComponent(q)}&limit=6`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Search failed');
+    if (!data.length) { document.getElementById('results').innerHTML = `<div class="error-box">No results found.</div>`; return; }
+    renderResults(data, q);
+  }
+
+  async function loadFromUrl(url) {
+    const type = currentFormat === 'audio' ? 'mp3' : 'mp4';
+    const res = await fetch(`${BASE}/download/youtube?q=${encodeURIComponent(url)}&type=${type}`);
+    const data = await res.json();
+    if (!res.ok || !data.status) throw new Error(data.message || 'Failed to load URL');
+    renderResults([{
+      id: data.result.id,
+      title: data.result.title,
+      uploader: data.result.author,
+      duration: data.result.duration,
+      thumbnail: data.result.thumbnail,
+      url: url,
+      download_url: data.result.download_url,
+      stream_url: `${BASE}/api/stream-url?url=${encodeURIComponent(url)}&format=audio`,
+    }], url);
+  }
+
+  function renderResults(items, query) {
+    const el = document.getElementById('results');
+    el.innerHTML = `<div class="results-title">${items.length} result${items.length !== 1 ? 's' : ''} for "${query}"</div>`;
+    items.forEach((item, i) => {
+      const card = document.createElement('div');
+      card.className = 'track-card';
+      card.style.animationDelay = `${i * 0.06}s`;
+      card.id = `card-${i}`;
+
+      const dlUrl = item.download_url || `${BASE}/api/download?url=${encodeURIComponent(item.url)}&format=${currentFormat === 'audio' ? 'audio' : 'video'}`;
+      const streamApiUrl = item.stream_url || `${BASE}/api/stream-url?url=${encodeURIComponent(item.url)}&format=audio`;
+      const videoUrl = item.url;
+      const ext = currentFormat === 'audio' ? 'm4a' : 'mp4';
+
+      card.innerHTML = `
+        <div class="track-top">
+          <div class="track-thumb-wrap">
+            ${item.thumbnail
+              ? `<img class="track-thumb" src="${item.thumbnail}" alt="" onerror="this.parentElement.innerHTML='<div class=thumb-ph>🎵</div>'">`
+              : `<div class="thumb-ph">🎵</div>`}
+            ${currentFormat === 'audio' ? `
+            <div class="play-overlay" onclick="togglePreview(${i}, '${encodeURIComponent(streamApiUrl)}', '${encodeURIComponent(item.title)}')">
+              <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </div>` : ''}
+          </div>
+          <div class="track-info">
+            <div class="track-title">${item.title}</div>
+            <div class="track-author">${item.uploader || ''}</div>
+            <div class="track-actions">
+              ${currentFormat === 'audio' ? `
+              <button class="act-btn preview" id="previewbtn-${i}" onclick="togglePreview(${i}, '${encodeURIComponent(streamApiUrl)}', '${encodeURIComponent(item.title)}')">
+                ▶ Preview
+              </button>` : ''}
+              <button class="act-btn ${currentFormat === 'audio' ? 'dl-audio' : 'dl-video'}" id="dlbtn-${i}" onclick="downloadTrack(${i}, '${encodeURIComponent(dlUrl)}', '${encodeURIComponent(item.title)}.${ext}')">
+                ⬇ ${currentFormat === 'audio' ? 'MP3' : 'MP4'}
+              </button>
+              ${currentFormat === 'audio' ? `
+              <button class="act-btn dl-video" onclick="downloadVideo(${i}, '${encodeURIComponent(videoUrl)}', '${encodeURIComponent(item.title)}')">
+                ⬇ MP4
+              </button>` : ''}
+            </div>
+          </div>
+          <div class="duration-pill">${formatDur(item.duration)}</div>
+        </div>
+        <div class="player-bar" id="player-${i}">
+          <div class="player-top">
+            <span style="font-size:0.8rem">🎵</span>
+            <span class="player-title" id="ptitle-${i}">${item.title}</span>
+            <span class="player-time" id="ptime-${i}">0:00 / ${formatDur(item.duration)}</span>
+          </div>
+          <div class="player-controls">
+            <button class="p-btn" id="ppause-${i}" onclick="toggleAudioPause(${i})">⏸</button>
+            <div class="progress-wrap" id="progwrap-${i}" onclick="seekAudio(event, ${i})">
+              <div class="progress-fill" id="prog-${i}"></div>
+            </div>
+            <button class="p-btn" onclick="stopPreview(${i})">✕</button>
+          </div>
+        </div>
+      `;
+      el.appendChild(card);
+    });
+  }
+
+  // AUDIO PREVIEW
+  const audio = document.getElementById('global-audio');
+  let activePreview = null;
+
+  async function togglePreview(i, encodedStreamUrl, encodedTitle) {
+    const streamApiUrl = decodeURIComponent(encodedStreamUrl);
+
+    if (activePreview === i) {
+      if (audio.paused) { audio.play(); updatePlayBtn(i, false); }
+      else { audio.pause(); updatePlayBtn(i, true); }
+      return;
+    }
+
+    // Stop previous
+    if (activePreview !== null) stopPreview(activePreview);
+
+    activePreview = i;
+    const btn = document.getElementById(`previewbtn-${i}`);
+    const bar = document.getElementById(`player-${i}`);
+    if (btn) { btn.textContent = '⏳ Loading...'; btn.classList.add('playing'); }
+
+    try {
+      const res = await fetch(streamApiUrl);
+      const data = await res.json();
+      if (!data.stream_url) throw new Error('No stream URL');
+
+      audio.src = data.stream_url;
+      audio.load();
+      await audio.play();
+
+      bar.classList.add('visible');
+      if (btn) btn.textContent = '⏸ Pause';
+
+      audio.ontimeupdate = () => {
+        const prog = document.getElementById(`prog-${i}`);
+        const time = document.getElementById(`ptime-${i}`);
+        if (prog && audio.duration) {
+          prog.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
+        }
+        if (time) time.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+      };
+
+      audio.onended = () => stopPreview(i);
+      audio.onerror = () => { stopPreview(i); };
+
+    } catch(e) {
+      if (btn) { btn.textContent = '▶ Preview'; btn.classList.remove('playing'); }
+      activePreview = null;
+    }
+  }
+
+  function toggleAudioPause(i) {
+    if (audio.paused) { audio.play(); document.getElementById(`ppause-${i}`).textContent = '⏸'; }
+    else { audio.pause(); document.getElementById(`ppause-${i}`).textContent = '▶'; }
+  }
+
+  function updatePlayBtn(i, paused) {
+    const btn = document.getElementById(`previewbtn-${i}`);
+    const pbtn = document.getElementById(`ppause-${i}`);
+    if (btn) btn.textContent = paused ? '▶ Resume' : '⏸ Pause';
+    if (pbtn) pbtn.textContent = paused ? '▶' : '⏸';
+  }
+
+  function stopPreview(i) {
+    audio.pause(); audio.src = '';
+    const btn = document.getElementById(`previewbtn-${i}`);
+    const bar = document.getElementById(`player-${i}`);
+    const prog = document.getElementById(`prog-${i}`);
+    if (btn) { btn.textContent = '▶ Preview'; btn.classList.remove('playing'); }
+    if (bar) bar.classList.remove('visible');
+    if (prog) prog.style.width = '0%';
+    activePreview = null;
+  }
+
+  function seekAudio(e, i) {
+    const wrap = document.getElementById(`progwrap-${i}`);
+    const rect = wrap.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    if (audio.duration) audio.currentTime = pct * audio.duration;
+  }
+
+  // DOWNLOAD
+  async function downloadTrack(i, encodedUrl, encodedName) {
+    const url = decodeURIComponent(encodedUrl);
+    const name = decodeURIComponent(encodedName);
+    const btn = document.getElementById(`dlbtn-${i}`);
+    btn.textContent = '⏳ Downloading...';
+    btn.classList.add('dl-loading');
 
     try {
       const res = await fetch(url);
-      const data = await res.json();
-      document.getElementById(`${type}-status`).innerHTML = res.ok
-        ? `<span class="badge-ok">200 OK</span>`
-        : `<span class="badge-err">${res.status} Error</span>`;
-      document.getElementById(`${type}-res-txt`).innerHTML = highlight(data);
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      btn.textContent = '✅ Done!';
+      setTimeout(() => {
+        btn.textContent = currentFormat === 'audio' ? '⬇ MP3' : '⬇ MP4';
+        btn.classList.remove('dl-loading');
+      }, 3000);
     } catch(e) {
-      document.getElementById(`${type}-status`).innerHTML = `<span class="badge-err">Error</span>`;
-      document.getElementById(`${type}-res-txt`).textContent = e.message;
+      btn.textContent = '❌ Failed';
+      btn.classList.remove('dl-loading');
+      setTimeout(() => { btn.textContent = currentFormat === 'audio' ? '⬇ MP3' : '⬇ MP4'; }, 3000);
     }
-
-    btn.disabled = false;
-    btn.textContent = '▶ Execute';
   }
 
-  function clearPage(type) {
-    document.getElementById(`${type}-q`).value = '';
-    if (document.getElementById(`${type}-limit`)) document.getElementById(`${type}-limit`).value = '';
-    ['req','curl','res'].forEach(s => document.getElementById(`${type}-${s}-sec`).style.display = 'none');
+  async function downloadVideo(i, encodedUrl, encodedTitle) {
+    const url = decodeURIComponent(encodedUrl);
+    const title = decodeURIComponent(encodedTitle);
+    const dlUrl = `${BASE}/api/download?url=${encodeURIComponent(url)}&format=video`;
+    await downloadTrack(i, encodeURIComponent(dlUrl), encodeURIComponent(title + '.mp4'));
   }
 
-  function copyEl(btn, txtId) {
-    const text = document.getElementById(txtId).textContent;
-    navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = '✅ Copied';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = '📋 Copy'; btn.classList.remove('copied'); }, 2000);
-    });
-  }
-
-  function copyText(btn, text) {
-    navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = '✅ Copied';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = '📋 Copy'; btn.classList.remove('copied'); }, 2000);
-    });
-  }
-
-  ['mp3','mp4','yt'].forEach(t => {
-    document.getElementById(`${t}-q`).addEventListener('keydown', e => { if (e.key === 'Enter') execute(t); });
+  // Enter key
+  document.getElementById('search-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleSearch();
   });
 </script>
 </body>
